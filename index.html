@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SSU Navigator — 숭실대 캠퍼스 길찾기</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f52a5c26a7b50b957cb5b15d56068785&autoload=false"></script>
+<script
+  type="text/javascript"
+  src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f52a5c26a7b50b957cb5b15d56068785&autoload=false&libraries=services">
+</script>
 <style>
 :root{--bg:#07090f;--sur:#0f1420;--card:#141b2d;--bdr:#1e2d4a;--acc:#2f6ef5;--acc2:#5b8fff;--glow:rgba(47,110,245,0.22);--tx:#dde4f0;--dim:#4a5a78;--mut:#7a8ba8;--grn:#0ea572;--org:#f59e0b;--red:#ef4444;--r:12px}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -383,38 +386,53 @@ function bldgCenter(name){
   return{x:b[0]+b[2]/2, y:b[1]+b[3]/2};
 }
 
-// ── 건물별 실제 위경도 좌표 ──────────────────────────────
+// ── 건물별 실제 위경도 좌표 (카카오맵 위성 기준) ──────────
 const LATLNG = {
-  "숭실대입구역(정문)": [37.4963, 126.9576],
-  "남문":               [37.4961, 126.9599],
-  "중문":               [37.4983, 126.9613],
-  "안익태기념관":       [37.4970, 126.9579],
-  "형남공학관":         [37.4973, 126.9585],
-  "한국기독교박물관":   [37.4971, 126.9592],
-  "한경직기념관":       [37.4976, 126.9585],
-  "문화관":             [37.4972, 126.9572],
-  "숭덕경상관":         [37.4979, 126.9572],
-  "슈파크":             [37.4981, 126.9570],
-  "베어드홀":           [37.4975, 126.9578],
-  "학생회관":           [37.4980, 126.9578],
-  "진리관":             [37.4980, 126.9585],
-  "미래관":             [37.4974, 126.9592],
-  "전산관":             [37.4977, 126.9598],
-  "창신관":             [37.4983, 126.9602],
-  "글로벌브레인홀":     [37.4987, 126.9603],
-  "레지던스홀":         [37.4990, 126.9600],
-  "신양관":             [37.4983, 126.9580],
-  "중앙도서관":         [37.4984, 126.9587],
-  "연구관":             [37.4985, 126.9596],
-  "웨스트민스터홀":     [37.4988, 126.9587],
-  "조만식기념관":       [37.4991, 126.9587],
-  "벤처중소기업센터":   [37.4990, 126.9595],
-  "대운동장":           [37.4988, 126.9576],
-  "백마관":             [37.4993, 126.9578],
-  "교육관":             [37.4993, 126.9585],
-  "창의관":             [37.4962, 126.9597],
-  "정보과학관":         [37.4961, 126.9604],
-  "농구장":             [37.4971, 126.9596],
+  // 출입구
+  "숭실대입구역(정문)": [37.4964, 126.9572],
+  "남문":               [37.4958, 126.9601],
+  "중문":               [37.4985, 126.9614],
+
+  // 캠퍼스 남쪽 (정문~형남공학관 라인)
+  "안익태기념관":       [37.4972, 126.9578],
+  "형남공학관":         [37.4976, 126.9584],
+  "한국기독교박물관":   [37.4974, 126.9594],
+  "한경직기념관":       [37.4979, 126.9583],
+  "미래관":             [37.4976, 126.9595],
+
+  // 서쪽
+  "문화관":             [37.4973, 126.9570],
+  "숭덕경상관":         [37.4980, 126.9570],
+  "슈파크":             [37.4984, 126.9568],
+
+  // 중앙
+  "베어드홀":           [37.4977, 126.9576],
+  "학생회관":           [37.4983, 126.9577],
+  "진리관":             [37.4983, 126.9584],
+  "신양관":             [37.4986, 126.9579],
+  "중앙도서관":         [37.4987, 126.9586],
+  "연구관":             [37.4988, 126.9595],
+  "웨스트민스터홀":     [37.4990, 126.9586],
+  "조만식기념관":       [37.4993, 126.9586],
+  "벤처중소기업센터":   [37.4991, 126.9594],
+
+  // 동쪽
+  "전산관":             [37.4980, 126.9600],
+  "창신관":             [37.4985, 126.9605],
+  "글로벌브레인홀":     [37.4989, 126.9606],
+  "레지던스홀":         [37.4992, 126.9603],
+
+  // 북쪽
+  "대운동장":           [37.4990, 126.9575],
+  "백마관":             [37.4995, 126.9577],
+  "교육관":             [37.4995, 126.9584],
+
+  // 남문 근처
+  "창의관":             [37.4963, 126.9599],
+  "정보과학관":         [37.4962, 126.9607],
+
+  // 기타
+  "농구장":             [37.4973, 126.9597],
 };
 
 // 건물 카테고리별 마커 색상
@@ -427,10 +445,8 @@ const MARKER_COLOR = {
 function markerColor(name){return MARKER_COLOR[name]||'#2f6ef5';}
 
 let kakaoMapInst = null;
-let kakaoMapMarkersAdded = false; // 마커 중복 추가 방지
+let kakaoMapMarkersAdded = false;
 let kakaoMiniMapInst = null;
-let miniMapMarkers = [];          // 미니맵 마커/폴리라인 재사용
-let miniMapPolyline = null;
 
 function makeMarkerImage(color, size=28){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size*1.3}">
@@ -446,34 +462,41 @@ function renderMap(){
   const container=document.getElementById('kakaoMap');
   if(!container)return;
   const center=new kakao.maps.LatLng(37.4979, 126.9588);
-
   if(!kakaoMapInst){
     kakaoMapInst=new kakao.maps.Map(container,{center,level:3});
   }
-
-  // ★ 핵심 수정: display:none → block 된 직후 지도 크기를 재계산
   kakaoMapInst.relayout();
   kakaoMapInst.setCenter(center);
+  if(kakaoMapMarkersAdded)return;
+  kakaoMapMarkersAdded=true;
 
-  // 마커는 최초 1회만 추가 (탭 재방문 시 중복 방지)
-  if(kakaoMapMarkersAdded) return;
-  kakaoMapMarkersAdded = true;
+  const ps = new kakao.maps.services.Places();
 
   Object.entries(LATLNG).forEach(([name,[lat,lng]])=>{
     if(name==='농구장')return;
-    const pos=new kakao.maps.LatLng(lat,lng);
-    const marker=new kakao.maps.Marker({
-      map:kakaoMapInst, position:pos,
-      image:makeMarkerImage(markerColor(name)),
-      title:name,
-    });
-    const label=new kakao.maps.CustomOverlay({
-      map:kakaoMapInst,
-      position:pos,
-      content:`<div style="background:rgba(7,9,15,0.82);color:#dde4f0;font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:Noto Sans KR,sans-serif;margin-top:-42px;border:1px solid #1e2d4a">${name}</div>`,
-      yAnchor:0,
-    });
-    kakao.maps.event.addListener(marker,'click',()=>showMod(name));
+
+    // 카카오 장소 검색으로 정확한 좌표 취득, 실패 시 기존 좌표 사용
+    ps.keywordSearch('숭실대학교 ' + name, function(result, status){
+      let pos;
+      if(status === kakao.maps.services.Status.OK){
+        pos = new kakao.maps.LatLng(result[0].y, result[0].x);
+        // LATLNG도 업데이트해서 미니맵에도 반영
+        LATLNG[name] = [parseFloat(result[0].y), parseFloat(result[0].x)];
+      } else {
+        pos = new kakao.maps.LatLng(lat, lng);
+      }
+      const marker=new kakao.maps.Marker({
+        map:kakaoMapInst, position:pos,
+        image:makeMarkerImage(markerColor(name)),
+        title:name,
+      });
+      new kakao.maps.CustomOverlay({
+        map:kakaoMapInst, position:pos,
+        content:`<div style="background:rgba(7,9,15,0.82);color:#dde4f0;font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:Noto Sans KR,sans-serif;margin-top:-42px;border:1px solid #1e2d4a">${name}</div>`,
+        yAnchor:0,
+      });
+      kakao.maps.event.addListener(marker,'click',()=>showMod(name));
+    }, {location: center, radius: 500});
   });
 }
 
@@ -484,33 +507,26 @@ function renderMiniMap(fromName, toName){
   if(!fl||!tl)return;
   const clat=(fl[0]+tl[0])/2, clng=(fl[1]+tl[1])/2;
   const center=new kakao.maps.LatLng(clat,clng);
-
   if(!kakaoMiniMapInst){
     kakaoMiniMapInst=new kakao.maps.Map(container,{center,level:4});
   } else {
-    // ★ 핵심 수정: 기존 마커·폴리라인 제거 후 재사용 (innerHTML 초기화 금지)
-    miniMapMarkers.forEach(m=>m.setMap(null));
-    miniMapMarkers=[];
-    if(miniMapPolyline){ miniMapPolyline.setMap(null); miniMapPolyline=null; }
-    kakaoMiniMapInst.relayout();
     kakaoMiniMapInst.setCenter(center);
     kakaoMiniMapInst.setLevel(4);
   }
-
   // 출발 마커
-  miniMapMarkers.push(new kakao.maps.Marker({
+  new kakao.maps.Marker({
     map:kakaoMiniMapInst,
     position:new kakao.maps.LatLng(fl[0],fl[1]),
     image:makeMarkerImage('#0ea572',32),
     title:'출발: '+fromName,
-  }));
+  });
   // 도착 마커
-  miniMapMarkers.push(new kakao.maps.Marker({
+  new kakao.maps.Marker({
     map:kakaoMiniMapInst,
     position:new kakao.maps.LatLng(tl[0],tl[1]),
     image:makeMarkerImage('#ef4444',32),
     title:'도착: '+toName,
-  }));
+  });
   // 경로 폴리라인
   const r=getRoute(fromName,toName);
   const linePath=r.via.map(stop=>{
@@ -518,7 +534,7 @@ function renderMiniMap(fromName, toName){
     return ll ? new kakao.maps.LatLng(ll[0],ll[1]) : null;
   }).filter(Boolean);
   if(linePath.length>=2){
-    miniMapPolyline=new kakao.maps.Polyline({
+    new kakao.maps.Polyline({
       map:kakaoMiniMapInst,
       path:linePath,
       strokeWeight:4,
@@ -580,8 +596,7 @@ function goPg(name,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.getElementById(name+'Pg').classList.add('on');
   if(el)el.classList.add('on');
-  // ★ display:block 적용 후 한 프레임 기다렸다가 지도 relayout 실행
-  if(name==='map') requestAnimationFrame(()=>requestAnimationFrame(renderMap));
+  if(name==='map') setTimeout(renderMap, 0);
   if(name==='cong')renderCong();
 }
 function doSwap(){const s=document.getElementById('ss'),e=document.getElementById('es');[s.value,e.value]=[e.value,s.value];}
@@ -596,9 +611,8 @@ function findRoute(){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.getElementById('resPg').classList.add('on');
-  // ★ innerHTML 초기화 제거 — 기존 kakao.maps 인스턴스 DOM이 날아가면 지도가 망가짐
-  // 마커/폴리라인 정리는 renderMiniMap 내부에서 setMap(null)로 처리
-  setTimeout(()=>renderMiniMap(s,e), 80);
+  document.getElementById('minimap').innerHTML='';
+  setTimeout(()=>renderMiniMap(s,e), 50);
   document.getElementById('rtitle').textContent=`${s} → ${e}`;
   document.getElementById('rsub').textContent='경로를 찾았어요!';
   document.getElementById('mtime').textContent=r.mins+'분';
@@ -729,10 +743,10 @@ function renderCong(){
   });
 }
 
-// ★ SDK 로드 완료 후 실행 — kakao is not defined 방지
-kakao.maps.load(function(){
+kakao.maps.load(function () {
   populateSelects();
   populatePresets();
+  renderMap();
 });
 </script>
 </body>
