@@ -354,10 +354,7 @@ function getRoute(a, b) {
 
 // ── 건물 정보 ─────────────────────────────────────────────
 const BINFO = {
-  "남문":               {emoji:"🚪",sub:"캠퍼스 남쪽 출입구",floors:"—",elv:false,cafe:false,conv:false,print:false,dept:"출입구",
-    desc:"사당로 방면 남쪽 출입구. 미래관·전산관·창의관·정보과학관과 가깝다. 이수역 방면 버스 이용 시 이 문이 편리하다."},
-  "중문":               {emoji:"🚪",sub:"캠퍼스 동쪽 출입구",floors:"—",elv:false,cafe:false,conv:false,print:false,dept:"출입구",
-    desc:"상도로55길 방면 동쪽 출입구. 원래 숭실대 정문이었던 곳으로, 7호선 개통 후 현재 정문(3번 출구 앞)으로 이전되면서 중문으로 불리게 됐다. 창신관·글로벌브레인홀·레지던스홀과 가깝다."},floors:"—",elv:true,cafe:false,conv:false,print:false,dept:"출입구",
+  "숭실대입구역(정문)":{emoji:"🚇",sub:"7호선 3번 출구",floors:"—",elv:true,cafe:false,conv:false,print:false,dept:"출입구",
     desc:"정문은 보행자 전용 출입구로 휴먼 스케일에 맞게 설계됐다. 8개의 콘크리트 기둥이 부드러운 곡면 지붕으로 묶인 조형물이 인상적. 7호선 3번 출구에서 횡단보도 건너면 바로 정문."},
   "베어드홀":          {emoji:"🎓",sub:"[01] 자연과학대학·대학본부",floors:"지상 5층/지하 1층",elv:true,cafe:false,conv:false,print:false,dept:"자연과학대학, 대학본부",
     desc:"1988년 준공. 유리거울 창과 신체장애자 배려 구조로 한국건축작가협회상 수상. 자연과학대학 실험실·교수연구실, 대학본부 사무실 입주. 🏧 2층 ATM(국민은행·우리은행, 08~22시). 💻 로비 PC 2대."},
@@ -421,7 +418,7 @@ function bldgCenter(name){
 // ── 건물별 실제 위경도 좌표 (카카오맵 위성 기준) ──────────
 const LATLNG = {
   // 출입구
-  "숭실대입구역(정문)": [37.4962, 126.9537],
+  "숭실대입구역(정문)": [37.4958, 126.9567],
   "남문":               [37.4958, 126.9601],
   "중문":               [37.4985, 126.9614],
 
@@ -507,17 +504,10 @@ function renderMap(){
   Object.entries(LATLNG).forEach(([name,[lat,lng]])=>{
     if(name==='농구장')return;
 
-    // 정문은 API 검색 없이 입구역 좌표 고정
-    if(name==='숭실대입구역(정문)'){
-      const pos=new kakao.maps.LatLng(lat,lng);
-      const m=new kakao.maps.Marker({map:kakaoMapInst,position:pos,image:makeMarkerImage(markerColor(name)),title:name});
-      new kakao.maps.CustomOverlay({map:kakaoMapInst,position:pos,content:`<div style="background:rgba(7,9,15,0.82);color:#dde4f0;font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:Noto Sans KR,sans-serif;margin-top:-42px;border:1px solid #1e2d4a">${name}</div>`,yAnchor:0});
-      kakao.maps.event.addListener(m,'click',()=>showMod(name));
-      return;
-    }
-
     // 카카오 장소 검색으로 정확한 좌표 취득, 실패 시 기존 좌표 사용
-    ps.keywordSearch('숭실대학교 ' + name, function(result, status){
+    // 정문은 '숭실대입구역'으로 검색해야 정확한 위치가 나옴
+    const query = (name === '숭실대입구역(정문)') ? '숭실대입구역' : '숭실대학교 ' + name;
+    ps.keywordSearch(query, function(result, status){
       let pos;
       if(status === kakao.maps.services.Status.OK){
         pos = new kakao.maps.LatLng(result[0].y, result[0].x);
