@@ -389,7 +389,7 @@ function bldgCenter(name){
 // ── 건물별 실제 위경도 좌표 (카카오맵 위성 기준) ──────────
 const LATLNG = {
   // 출입구
-  "숭실대입구역(정문)": [37.4964, 126.9572],
+  "숭실대입구역(정문)": [37.4958, 126.9567],
   "남문":               [37.4958, 126.9601],
   "중문":               [37.4985, 126.9614],
 
@@ -500,6 +500,9 @@ function renderMap(){
   });
 }
 
+let miniMapMarkers = [];
+let miniMapPolyline = null;
+
 function renderMiniMap(fromName, toName){
   const container=document.getElementById('minimap');
   if(!container)return;
@@ -507,26 +510,33 @@ function renderMiniMap(fromName, toName){
   if(!fl||!tl)return;
   const clat=(fl[0]+tl[0])/2, clng=(fl[1]+tl[1])/2;
   const center=new kakao.maps.LatLng(clat,clng);
+
+  // 이전 마커·폴리라인 제거
+  miniMapMarkers.forEach(m=>m.setMap(null));
+  miniMapMarkers=[];
+  if(miniMapPolyline){miniMapPolyline.setMap(null);miniMapPolyline=null;}
+
   if(!kakaoMiniMapInst){
     kakaoMiniMapInst=new kakao.maps.Map(container,{center,level:4});
   } else {
+    kakaoMiniMapInst.relayout();
     kakaoMiniMapInst.setCenter(center);
     kakaoMiniMapInst.setLevel(4);
   }
   // 출발 마커
-  new kakao.maps.Marker({
+  miniMapMarkers.push(new kakao.maps.Marker({
     map:kakaoMiniMapInst,
     position:new kakao.maps.LatLng(fl[0],fl[1]),
     image:makeMarkerImage('#0ea572',32),
     title:'출발: '+fromName,
-  });
+  }));
   // 도착 마커
-  new kakao.maps.Marker({
+  miniMapMarkers.push(new kakao.maps.Marker({
     map:kakaoMiniMapInst,
     position:new kakao.maps.LatLng(tl[0],tl[1]),
     image:makeMarkerImage('#ef4444',32),
     title:'도착: '+toName,
-  });
+  }));
   // 경로 폴리라인
   const r=getRoute(fromName,toName);
   const linePath=r.via.map(stop=>{
@@ -534,7 +544,7 @@ function renderMiniMap(fromName, toName){
     return ll ? new kakao.maps.LatLng(ll[0],ll[1]) : null;
   }).filter(Boolean);
   if(linePath.length>=2){
-    new kakao.maps.Polyline({
+    miniMapPolyline=new kakao.maps.Polyline({
       map:kakaoMiniMapInst,
       path:linePath,
       strokeWeight:4,
