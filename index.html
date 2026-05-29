@@ -95,17 +95,18 @@ select:focus{outline:none;border-color:var(--acc)}
       <button class="swapbtn" onclick="doSwap()">⇄</button>
       <div class="swrap"><span class="slabel">도착</span><select id="es"><option value="">도착 건물 선택</option></select></div>
     </div>
-    <div class="ct">옵션</div>
-    <div class="chips">
-      <div class="chip on" id="o-ind" onclick="tog('ind')"><div class="d"></div>🏠 실내 우선</div>
-      <div class="chip"    id="o-elv" onclick="tog('elv')"><div class="d"></div>🛗 엘리베이터</div>
-      <div class="chip"    id="o-rai" onclick="tog('rai')"><div class="d"></div>🌧 비 오는 날</div>
-    </div>
     <button class="btnp" onclick="findRoute()">🔍 길찾기</button>
   </div>
   <div class="card">
     <div class="ct">자주 찾는 경로</div>
     <div class="chips" style="margin-bottom:0" id="presets"></div>
+  </div>
+  <div class="card" id="recentCard" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+      <div class="ct" style="margin-bottom:0">🕐 최근 찾은 경로</div>
+      <button onclick="clearRecent()" style="background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체 삭제</button>
+    </div>
+    <div id="recentList"></div>
   </div>
 </div>
 
@@ -299,8 +300,6 @@ const DIST = {
 };
 
 function getDist(a, b) {
-  if (DIST[a]?.[b] !== undefined) return DIST[a][b];
-  if (DIST[b]?.[a] !== undefined) return DIST[b][a];
   const la=LATLNG[a], lb=LATLNG[b];
   if(la && lb){
     const R=6371000;
@@ -354,59 +353,62 @@ function getRoute(a, b) {
 
 // ── 건물 정보 ─────────────────────────────────────────────
 const BINFO = {
-  "숭실대입구역(정문)":{emoji:"🚇",sub:"7호선 3번 출구",floors:"—",elv:true,cafe:false,conv:false,print:false,dept:"출입구",
-    desc:"정문은 보행자 전용 출입구로 휴먼 스케일에 맞게 설계됐다. 8개의 콘크리트 기둥이 부드러운 곡면 지붕으로 묶인 조형물이 인상적. 7호선 3번 출구에서 횡단보도 건너면 바로 정문."},
+  "숭실대입구역(정문)":{emoji:"🚇",sub:"7호선 3번 출구",floors:"—",elv:false,cafe:false,conv:false,print:false,dept:"출입구",
+    desc:"보행자 전용 출입구. 7호선 숭실대입구역 3번 출구에서 횡단보도를 건너면 바로 정문입니다."},
   "베어드홀":          {emoji:"🎓",sub:"[01] 자연과학대학·대학본부",floors:"지상 5층/지하 1층",elv:true,cafe:false,conv:false,print:false,dept:"자연과학대학, 대학본부",
-    desc:"1988년 준공. 유리거울 창과 신체장애자 배려 구조로 한국건축작가협회상 수상. 자연과학대학 실험실·교수연구실, 대학본부 사무실 입주. 🏧 2층 ATM(국민은행·우리은행, 08~22시). 💻 로비 PC 2대."},
+    desc:"자연과학대학(310호, ☎02-820-0403) 실험실·교수연구실과 대학본부 사무실이 있습니다. 🏧 2층 ATM(국민은행·우리은행, 08~22시). 💻 로비 PC 2대."},
   "숭덕경상관":        {emoji:"📊",sub:"[02] 경영·경제통상대학",floors:"지상 6층/지하 2층",elv:true,cafe:true,conv:true,print:true,dept:"경영대학, 경제통상대학",
-    desc:"2019년 신축. 경영·경통대 강의실·교수연구실. 외국인 유학생 전용 사무실 마련. ☕ 2층 달콤슈(카페). 🏪 118호 COOPSKET(편의점). 🖨 1·2층 무인프린터."},
-  "문화관":            {emoji:"🎨",sub:"[03] 과학교육시설",floors:"지상 5층 (건평 1,270평)",elv:false,cafe:false,conv:false,print:false,dept:"인문대학",
-    desc:"1971년 준공. '제2공학관'에서 문화관으로 변경. 안전융합대학원(404호) 입주. 🎁 1층 숭실기념품점(105-1호, ☎02-3280-0776)."},
+    desc:"경영대학·경제통상대학 강의실·행정실(401호, ☎02-820-0543/0572). 외국인 유학생 전용 사무실 있음. ☕ 2층 달콤슈(카페). 🏪 118호 COOPSKET. 🖨 1·2층 무인프린터."},
+  "문화관":            {emoji:"🎨",sub:"[03] 강의실·대학원",floors:"지상 5층",elv:false,cafe:false,conv:false,print:false,dept:"안전융합대학원",
+    desc:"안전융합대학원(404호, ☎02-828-7013) 입주. 🎁 1층 숭실기념품점(105-1호, ☎02-3280-0776) — 학교 굿즈·기념품 구매 가능."},
   "안익태기념관":      {emoji:"🎵",sub:"[04] 강의실",floors:"지상 4층",elv:false,cafe:false,conv:false,print:false,dept:"음악대학, 평생교육원",
-    desc:"숭실대 출신 애국가 작곡가 안익태 선생 기념관. 건물 외관에 애국가 악보와 가사 한 소절이 새겨져 있음. 평생교육원(106호, ☎02-820-0285) 입주."},
+    desc:"음악대학 강의실과 평생교육원(106호, ☎02-820-0285)이 있습니다. 건물 외관에 애국가 악보가 새겨져 있어 캠퍼스 랜드마크 중 하나."},
   "형남공학관":        {emoji:"🏗",sub:"[05] 공과대학",floors:"지상 15층/지하 1층",elv:true,cafe:false,conv:true,print:true,dept:"공과대학",
-    desc:"김형남 박사 이름을 딴 건물. 15층에서 63빌딩·한강·남산타워 조망 가능. 공과대학 행정실(307호, ☎02-820-0603). 🏪 2층 COOPSKET(편의점). 🏧 2층 ATM(우리은행, 08~22시). 🖨 2층 무인프린터. 💻 2층 로비PC 4대."},
-  "교육관":            {emoji:"📝",sub:"[06] 제136학군단 본부",floors:"지상 3층/지하 1층",elv:false,cafe:false,conv:false,print:false,dept:"제136학군단",
-    desc:"군사교육이 병행되던 1970년대 대학캠퍼스의 상징적 건물. 제136학군단 본부·훈육관실 운영. 🏋 103-1호 체력단련실."},
-  "백마관":            {emoji:"🏢",sub:"[07] 강의실·교수연구실",floors:"지상 3층/지하 1층 (건평 925평)",elv:false,cafe:false,conv:false,print:false,dept:"여러 학과 공동",
-    desc:"1993년 준공. 과거 법과대학으로 사용. 강의실·교수연구실·축구부 숙소를 위해 건립. '1단대 1건물' 실현에 기여."},
+    desc:"공과대학 행정실(307호, ☎02-820-0603). 캠퍼스에서 가장 높은 건물(15층). 🏪 2층 COOPSKET(201호). 🏧 2층 ATM(우리은행, 08~22시). 🖨 2층 무인프린터. 💻 2층 민원센터 로비PC 4대."},
+  "교육관":            {emoji:"📝",sub:"[06] 제136학군단",floors:"지상 3층/지하 1층",elv:false,cafe:false,conv:false,print:false,dept:"제136학군단",
+    desc:"제136학군단 본부·훈육관실 운영. 🏋 103-1호 체력단련실 이용 가능."},
+  "백마관":            {emoji:"🏢",sub:"[07] 강의실·교수연구실",floors:"지상 3층/지하 1층",elv:false,cafe:false,conv:false,print:false,dept:"여러 학과 공동",
+    desc:"여러 학과 공동 강의실·교수연구실로 운영됩니다. 캠퍼스 북쪽 끝에 위치."},
   "한경직기념관":      {emoji:"⛪",sub:"[08] 채플·예배실",floors:"지상 2층",elv:false,cafe:false,conv:false,print:false,dept:"채플(전교생 필수)",
-    desc:"한경직 목사 기념관. 예배실·전시실 보유. 전교생 필수 채플 공간. 수요일 채플 시간엔 매우 혼잡."},
-  "신양관":            {emoji:"🏢",sub:"[09] 편의시설 집약 건물",floors:"지상 6층/지하 1층",elv:true,cafe:false,conv:true,print:true,dept:"입학처, 사범대학, 자연과학대학",
-    desc:"1998년 준공. 입학처·학사팀 입주. 🏦 지하 1층 우리은행(☎02-820-0848)·우체국(09~18시, ☎02-815-3366). 🏪 1층 COOPSKET(112호). 🖨 3층 삼각뿔복사실(아이프린트, ☎02-3280-9762)."},
-  "벤처중소기업센터":  {emoji:"💼",sub:"[10] 중소기업·창업",floors:"지상 7층/지하 1층 (건평 2,700평)",elv:true,cafe:false,conv:false,print:false,dept:"중소기업학과, 중소기업대학원",
-    desc:"2001년 신축. 한국 최초 중소기업학과·중소기업대학원 설립. 강의실·창업기업실·교수연구실 운영. 💻 B106호·209호 PC실습실(방학 중 운영 상황에 따라 다름)."},
+    desc:"전교생 필수 채플 공간. 예배실·전시실 보유. ⚠️ 수요일 10~12시 채플 시간엔 주변이 매우 혼잡하니 이동 시 참고하세요."},
+  "신양관":            {emoji:"🏢",sub:"[09] 편의시설 집약 건물",floors:"지상 6층/지하 1층",elv:true,cafe:false,conv:true,print:true,dept:"입학처, 학사팀",
+    desc:"입학처·학사팀 입주. 증명서·학적 관련 업무는 여기서. 🏦 지하 1층 우리은행(☎02-820-0848) · 우체국(09~18시, ☎02-815-3366). 🏪 1층 COOPSKET(112호). 🖨 3층 삼각뿔복사실·아이프린트(☎02-3280-9762, 학기 중 월~금 08:30~20:30)."},
+  "벤처중소기업센터":  {emoji:"💼",sub:"[10] 중소기업학과·창업",floors:"지상 7층/지하 1층",elv:true,cafe:false,conv:false,print:false,dept:"중소기업학과, 중소기업대학원",
+    desc:"중소기업학과·중소기업대학원 강의실·창업기업실. 💻 B106호·209호 PC실습실(방학 중 운영 여부는 관리처 확인)."},
   "진리관":            {emoji:"🏢",sub:"[11] 법·사회과학 강의동",floors:"지상 5층/지하 1층",elv:false,cafe:false,conv:false,print:false,dept:"법과대학, 사회과학대학, 베어드교양대학",
-    desc:"1967년 신축 후 도서관→인문관→진리관으로 변경. 법과대학(520호, ☎02-820-0463), 베어드교양대학(207호) 입주. 📋 1층 증명서 자동발급기. 💻 306호 PC실습실."},
+    desc:"법과대학(520호, ☎02-820-0463) · 베어드교양대학(207호, ☎02-820-0727) 입주. 📋 1층 증명서 자동발급기(신용카드·교통카드 결제, 현금 불가). 💻 306호 PC실습실."},
   "조만식기념관":      {emoji:"📚",sub:"[12] 인문·사회과학 강의동",floors:"지상 7층/지하 1층",elv:true,cafe:true,conv:true,print:true,dept:"인문대학, 사회과학대학",
-    desc:"2008년 한국건축문화대상 수상. 인문대학(423호, ☎02-820-0303), 사회과학대학(528호) 입주. ☕ 1층 커피앤티스토리(카페). 🏪 2층 COOPSKET(207-1호). 🏧 1층 ATM(우리은행·신한은행). 🖨 1·3층 무인프린터. 🏋 101호 체육관(실내농구장)."},
-  "한국기독교박물관":  {emoji:"🏛",sub:"[13] 기독교 역사 박물관",floors:"지상 3층/지하 2층",elv:true,cafe:false,conv:false,print:false,dept:"박물관",
-    desc:"1967년 개관. 2004년 초현대식 박물관으로 재개관. 지상 3층 4개 전시실, 지하 2층 학예과·연구실."},
-  "중앙도서관":        {emoji:"📖",sub:"[14] 중앙도서관",floors:"지상 6층/지하 1층 (건평 2,768평)",elv:true,cafe:true,conv:false,print:true,dept:"도서관",
-    desc:"1983년 현 건물로 이전. 개관 당시 2,041석. ☕ 6층 숭실마루(카페). 🖨 1·4·5·6층 및 지하 1층 무인프린터. 📦 1층 무인반납기. 💻 1층 로비PC 4대. 🔖 1층 세미나룸(3~8인, 앱·홈페이지 예약)."},
-  "연구관":            {emoji:"🔬",sub:"[15] 교수연구실",floors:"지상 3층 (건평 450평)",elv:false,cafe:false,conv:false,print:false,dept:"교수연구실",
-    desc:"1960년 준공. 원래 기숙사로 사용됐으나 현재는 교수연구실 건물로 운영."},
+    desc:"인문대학(423호, ☎02-820-0303) · 사회과학대학(528호, ☎02-820-0492) 입주. ☕ 1층 커피앤티스토리. 🏪 2층 COOPSKET(207-1호). 🏧 1층 ATM(우리은행·신한은행). 🖨 1·3층 무인프린터. 🏋 101호 체육관(실내농구장) · 111호 체력단련장. 🚹 1층 장애학생지원센터."},
+  "한국기독교박물관":  {emoji:"🏛",sub:"[13] 박물관",floors:"지상 3층/지하 2층",elv:true,cafe:false,conv:false,print:false,dept:"박물관",
+    desc:"지상 3층 4개 전시실 운영. 한국 기독교 역사·유물 전시. 무료 관람 가능(운영시간 확인 필요)."},
+  "중앙도서관":        {emoji:"📖",sub:"[14] 중앙도서관",floors:"지상 6층/지하 1층",elv:true,cafe:true,conv:false,print:true,dept:"도서관",
+    desc:"열람실·서고 운영. ☕ 6층 숭실마루(카페). 🖨 1·4·5·6층·지하 1층 무인프린터. 📦 1층 무인반납기(대출반납실 미운영 시). 💻 1층 로비PC 4대(핸드폰 충전 가능). 🔖 1층 세미나룸(3~8인, 도서관 앱·홈페이지 예약 후 이용). 📺 5층 A/V교육실(약 30석, 예약 필수 ☎02-820-0741)."},
+  "연구관":            {emoji:"🔬",sub:"[15] 교수연구실",floors:"지상 3층",elv:false,cafe:false,conv:false,print:false,dept:"교수연구실",
+    desc:"교수연구실 전용 건물. 학생 용무 시 해당 교수실 호수 확인 후 방문."},
   "창신관":            {emoji:"✨",sub:"[16] 창업 전용 공간",floors:"지상 3층/지하 1층",elv:false,cafe:false,conv:false,print:false,dept:"창업지원",
-    desc:"'법고창신(法古創新)' 정신에서 이름을 딴 건물. 1972년 제3기숙사→사회대→현재 창업 공간. 학생창업 동아리실·창업전용 교육실습실·창업보육실 운영."},
-  "글로벌브레인홀":    {emoji:"🌐",sub:"[17] 고시연구실·교수연구실",floors:"지상 8층/지하 2층 (건평 1,210평)",elv:true,cafe:true,conv:false,print:false,dept:"고시연구실",
-    desc:"1991년 생활관으로 준공. 현재 고시연구실(행정고시반 등) 운영. ☕ 3층 카페 331. 🍔 웨스트민스터홀 3층 뒤 푸드트럭(니키즈). 🏋 지하 1층 체력단련실."},
-  "레지던스홀":        {emoji:"🏠",sub:"[18] 기숙사",floors:"지상 12층/지하 2층 (연면적 8,805평)",elv:true,cafe:false,conv:true,print:false,dept:"기숙사",
-    desc:"2009년 개관. 1·2·4인실·게스트하우스 등 다양한 형태. 호실 내 냉장고·세면실·화장실 제공. 🏪 지하 1층 LOG-IN 편의점·기숙사식당. 🏋 지하 1층 체력단련실·독서실(24시간). 🧺 1층 세탁실(24시간, 코인)."},
+    desc:"학생창업 동아리실·창업전용 교육실습실·창업보육실 운영. 창업에 관심 있는 학생은 이곳으로."},
+  "글로벌브레인홀":    {emoji:"🌐",sub:"[17] 고시연구실·교수연구실",floors:"지상 8층/지하 2층",elv:true,cafe:true,conv:false,print:false,dept:"고시연구실",
+    desc:"행정고시반 등 고시연구실 운영. ☕ 3층 카페 331. 🍔 웨스트민스터홀 3층 입구 뒤 푸드트럭(니키즈). 🏋 지하 1층 체력단련실."},
+  "레지던스홀":        {emoji:"🏠",sub:"[18] 기숙사",floors:"지상 12층/지하 2층",elv:true,cafe:false,conv:true,print:false,dept:"기숙사",
+    desc:"1·2·4인실·게스트하우스 운영. 호실 내 냉장고·세면실·화장실 제공. 🏪 지하 1층 LOG-IN 편의점·기숙사식당. 🏋 지하 1층 체력단련실·독서실(24시간). 🧺 1층 세탁실(24시간, 코인세탁기·건조기, 세제 개인 준비). ⚠️ 입주 학생 전용 시설 多."},
   "전산관":            {emoji:"💻",sub:"[19] IT대학 강의·실습",floors:"지상 5층/지하 1층",elv:true,cafe:true,conv:true,print:true,dept:"IT대학",
-    desc:"1979년 전자계산원 설립 이후 증축 거듭해 현재 5층. IT대학 행정실(☎02-820-0932). 🍽 지층 THE KITCHEN(카페테리아, 커피·파스타·피자) · 교직원식당. 🏪 지층 외부 COOPSKET. 🏧 1층 ATM(우리은행, 09~16시). 🖨 1층 무인프린터."},
-  "미래관":            {emoji:"🚀",sub:"[20] 강의실",floors:"지상 5층/지하 1층 (건평 1,430평)",elv:true,cafe:true,conv:false,print:true,dept:"공과대학, IT대학",
-    desc:"1973년 준공. 대형 강의실·실험실 보유. 🖨 무인프린터 있음."},
+    desc:"IT대학 행정실(106호, ☎02-820-0932). 🍽 지층 THE KITCHEN(카페테리아, 커피·파스타·피자) · 교직원식당. 🏪 지층 외부 COOPSKET. 🏧 1층 ATM(우리은행, 09~16시). 🖨 1층 무인프린터."},
+  "미래관":            {emoji:"🚀",sub:"[20] 강의실",floors:"지상 5층/지하 1층",elv:true,cafe:false,conv:false,print:true,dept:"공과대학, IT대학",
+    desc:"공과대학·IT대학 대형 강의실·실험실. 🖨 무인프린터 있음. 남문에서 진입 시 바로 보이는 건물."},
   "정보과학관":        {emoji:"🔭",sub:"[21] IT대학 실습",floors:"지상 7층",elv:true,cafe:false,conv:false,print:true,dept:"IT대학, 자연과학대학",
-    desc:"1995년 신축. IT대학 행정실(106호, ☎02-820-0932). 🏧 1층 ATM(우리은행, 09~16시). 🖨 1층 무인프린터. 💻 1층 로비PC 2대."},
-  "웨스트민스터홀":    {emoji:"🕍",sub:"[22] 대학원",floors:"지상 8층",elv:true,cafe:true,conv:false,print:false,dept:"일반대학원, 특수대학원",
-    desc:"'웨스트민스터채플' 이름을 계승. 일반대학원(658호, ☎02-820-0258), 정보과학대학원(654호), 사회복지대학원(435호), 교육대학원(433호), 경영대학원(542호) 입주. ☕ 3층 카페 331. 🍔 3층 입구 뒤 푸드트럭(니키즈)."},
+    desc:"IT대학 강의·실습실. IT대학 행정실(106호, ☎02-820-0932). 🏧 1층 ATM(우리은행, 09~16시). 🖨 1층 무인프린터. 💻 1층 로비PC 2대. 남문 바로 옆에 위치."},
+  "웨스트민스터홀":    {emoji:"🕍",sub:"[22] 대학원",floors:"지상 8층",elv:true,cafe:true,conv:false,print:false,dept:"일반대학원·특수대학원",
+    desc:"각종 대학원 행정실 집약: 일반대학원(658호, ☎02-820-0258) · 정보과학대학원(654호) · 사회복지대학원(435호) · 교육대학원(433호) · 경영대학원(542호). ☕ 3층 카페 331. 🍔 3층 입구 뒤 푸드트럭(니키즈)."},
   "학생회관":          {emoji:"🎭",sub:"[23] 학생 편의시설",floors:"지상 5층/지하 2층",elv:true,cafe:true,conv:true,print:true,dept:"학생처",
-    desc:"학생 활동의 중심. 점심시간 매우 혼잡. 🍽 3층 학생식당(460석, ☎02-820-0882) · 스넥코너(200석). 🥐 2층 뚜레쥬르 · 푸드코트(147석). 🏪 4층 COOPSKET(411호). 📦 전자사물함·샤워실(120·121호). 🎵 224호 음악감상실 · 북카페."},
-  "창의관":            {emoji:"💡",sub:"[24] 산학융합 연구",floors:"지상 6층",elv:true,cafe:false,conv:false,print:false,dept:"숭실융합연구원, AI전문대학원",
-    desc:"산학융합 연구마을·숭실융합연구원·기독교문화연구원·스파르탄SW교육원·AI전문대학원(101호, ☎02-850-1692) 입주."},
-  "농구장":            {emoji:"🏀",sub:"농구장",floors:"야외",elv:false,cafe:false,conv:false,print:false,dept:"체육",desc:"미래관 앞 야외 농구장."},
-  "대운동장":          {emoji:"⚽",sub:"대운동장",floors:"야외",elv:false,cafe:false,conv:false,print:false,dept:"체육",desc:"축구장 규모. 각종 체육대회·학교 행사 공간. 캠퍼스 북서쪽."},
-  "슈파크":            {emoji:"🏊",sub:"종합체육관",floors:"지상 3층/지하 1층",elv:false,cafe:false,conv:false,print:false,dept:"체육",desc:"수영장·헬스장·배드민턴장 등 체육시설 운영."},
+    desc:"학생 관련 업무·식사·편의시설의 중심. ⚠️ 점심시간 매우 혼잡. 🍽 3층 학생식당(460석, ☎02-820-0882) · 스넥코너(200석). 🥐 2층 뚜레쥬르 · 푸드코트(147석). 🏪 4층 COOPSKET(411호). 🎒 전자사물함(스마트카드·모바일학생증). 🚿 샤워실(남 121호·여 120호). 🎵 224호 음악감상실 · 북카페. 🏢 학생서비스팀(406호, ☎02-820-0064)."},
+  "창의관":            {emoji:"💡",sub:"[24] 산학융합·AI대학원",floors:"지상 6층",elv:true,cafe:false,conv:false,print:false,dept:"숭실융합연구원, AI전문대학원",
+    desc:"AI전문대학원(101호, ☎02-850-1692) · 스파르탄SW교육원 · 숭실융합연구원 · 기독교문화연구원 입주. 남문 인근에 위치."},
+  "농구장":            {emoji:"🏀",sub:"야외 농구장",floors:"야외",elv:false,cafe:false,conv:false,print:false,dept:"체육",
+    desc:"학생회관 앞 야외 농구장. 누구나 자유롭게 이용 가능."},
+  "대운동장":          {emoji:"⚽",sub:"대운동장",floors:"야외",elv:false,cafe:false,conv:false,print:false,dept:"체육",
+    desc:"축구장 규모의 야외 운동장. 체육대회·학교 행사 등에 활용. 캠퍼스 북서쪽 끝에 위치."},
+  "슈파크":            {emoji:"🏊",sub:"종합체육관",floors:"지상 3층/지하 1층",elv:false,cafe:false,conv:false,print:false,dept:"체육",
+    desc:"수영장·헬스장·배드민턴장 운영. 점심(12~14시)·저녁(18~21시) 시간대 혼잡. 이용 요금·시간표는 학교 홈페이지 확인."},
 };
 
 // ── SVG 빌더 ──────────────────────────────────────────────
@@ -641,11 +643,64 @@ function goPg(name,el){
 function doSwap(){const s=document.getElementById('ss'),e=document.getElementById('es');[s.value,e.value]=[e.value,s.value];}
 function qr(from,to){document.getElementById('ss').value=from;document.getElementById('es').value=to;findRoute();}
 
+const RECENT_KEY = 'ssu_recent_routes';
+const RECENT_MAX = 5;
+
+function saveRecent(from, to) {
+  let list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+  // 중복 제거
+  list = list.filter(r => !(r.from === from && r.to === to));
+  list.unshift({ from, to, ts: Date.now() });
+  if (list.length > RECENT_MAX) list = list.slice(0, RECENT_MAX);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  renderRecent();
+}
+
+function renderRecent() {
+  const list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+  const card = document.getElementById('recentCard');
+  const wrap = document.getElementById('recentList');
+  if (!list.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  wrap.innerHTML = '';
+  list.forEach(({ from, to, ts }) => {
+    const elapsed = Math.round((Date.now() - ts) / 60000);
+    const timeLabel = elapsed < 1 ? '방금 전' : elapsed < 60 ? `${elapsed}분 전` : elapsed < 1440 ? `${Math.floor(elapsed/60)}시간 전` : `${Math.floor(elapsed/1440)}일 전`;
+    const d = document.createElement('div');
+    d.className = 'ccard';
+    d.style.cursor = 'pointer';
+    d.innerHTML = `
+      <div class="cleft" style="gap:7px;flex:1;min-width:0">
+        <span style="font-size:13px;flex-shrink:0">🔁</span>
+        <div style="min-width:0">
+          <div class="cname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${from.replace('숭실대입구역(정문)','정문')} → ${to}</div>
+          <div class="csub">${timeLabel}</div>
+        </div>
+      </div>
+      <button onclick="event.stopPropagation();removeRecent('${from}','${to}')" style="background:none;border:none;color:var(--dim);font-size:15px;cursor:pointer;flex-shrink:0;padding:0 2px">✕</button>`;
+    d.onclick = () => qr(from, to);
+    wrap.appendChild(d);
+  });
+}
+
+function removeRecent(from, to) {
+  let list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+  list = list.filter(r => !(r.from === from && r.to === to));
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  renderRecent();
+}
+
+function clearRecent() {
+  localStorage.removeItem(RECENT_KEY);
+  renderRecent();
+}
+
 function findRoute(){
   const s=document.getElementById('ss').value,e=document.getElementById('es').value;
   if(!s){alert('출발 건물을 선택해주세요.');return;}
   if(!e){alert('도착 건물을 선택해주세요.');return;}
   if(s===e){alert('출발지와 도착지가 같습니다.');return;}
+  saveRecent(s, e);
   const r=getRoute(s,e);
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -786,6 +841,7 @@ window.onload = function() {
   kakao.maps.load(function () {
     populateSelects();
     populatePresets();
+    renderRecent();
     renderMap();
   });
 };
