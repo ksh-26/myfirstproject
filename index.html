@@ -3,1013 +3,714 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>숭실 길찾기 — SSU Navigator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>SSU Navigator — 숭실대 캠퍼스 길찾기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f52a5c26a7b50b957cb5b15d56068785"></script>
 <style>
-  :root {
-    --bg: #0a0f1e;
-    --surface: #111827;
-    --card: #1a2235;
-    --border: #243050;
-    --accent: #3b7cf4;
-    --accent2: #60a5fa;
-    --accent-glow: rgba(59,124,244,0.25);
-    --text: #e2e8f0;
-    --text-dim: #64748b;
-    --text-muted: #94a3b8;
-    --green: #10b981;
-    --orange: #f59e0b;
-    --red: #ef4444;
-    --radius: 14px;
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; }
-
-  body {
-    font-family: 'Noto Sans KR', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── GRID BG ── */
-  body::before {
-    content:'';
-    position:fixed;
-    inset:0;
-    background-image:
-      linear-gradient(rgba(59,124,244,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(59,124,244,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events:none;
-    z-index:0;
-  }
-
-  /* ── NAV ── */
-  nav {
-    position: sticky;
-    top:0;
-    z-index:100;
-    background: rgba(10,15,30,0.85);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 56px;
-  }
-
-  .nav-logo {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-weight:700;
-    font-size:16px;
-    letter-spacing:-0.3px;
-  }
-
-  .logo-badge {
-    background: var(--accent);
-    color:#fff;
-    font-family: 'DM Mono', monospace;
-    font-size:11px;
-    font-weight:500;
-    padding: 3px 8px;
-    border-radius:6px;
-    letter-spacing:0.5px;
-  }
-
-  .nav-tabs {
-    display:flex;
-    gap:4px;
-  }
-
-  .nav-tab {
-    padding: 6px 16px;
-    border-radius:8px;
-    font-size:13px;
-    font-weight:500;
-    cursor:pointer;
-    color: var(--text-dim);
-    border:none;
-    background:none;
-    transition: all 0.2s;
-  }
-
-  .nav-tab:hover { color: var(--text-muted); background: var(--surface); }
-  .nav-tab.active { color: var(--accent2); background: rgba(59,124,244,0.12); }
-
-  /* ── PAGES ── */
-  .page { display:none; padding: 32px 24px; max-width:900px; margin:0 auto; position:relative; z-index:1; }
-  .page.active { display:block; animation: fadeUp 0.35s ease; }
-
-  @keyframes fadeUp {
-    from { opacity:0; transform:translateY(12px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
-
-  /* ── PAGE HEADER ── */
-  .page-header { margin-bottom:28px; }
-  .page-header h1 {
-    font-size:26px;
-    font-weight:700;
-    letter-spacing:-0.5px;
-    margin-bottom:6px;
-  }
-  .page-header p { color: var(--text-dim); font-size:14px; }
-
-  /* ── CARD ── */
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    margin-bottom:16px;
-  }
-
-  .card-title {
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:1.2px;
-    text-transform:uppercase;
-    color: var(--text-dim);
-    margin-bottom:14px;
-  }
-
-  /* ── SELECT ── */
-  .select-row {
-    display:grid;
-    grid-template-columns:1fr auto 1fr;
-    gap:12px;
-    align-items:center;
-    margin-bottom:16px;
-  }
-
-  .select-wrap { display:flex; flex-direction:column; gap:6px; }
-  .select-label { font-size:12px; color: var(--text-dim); font-weight:500; }
-
-  select {
-    width:100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 12px 14px;
-    border-radius:10px;
-    font-size:14px;
-    font-family: 'Noto Sans KR', sans-serif;
-    font-weight:500;
-    appearance:none;
-    cursor:pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    transition: border-color 0.2s;
-  }
-
-  select:focus { outline:none; border-color: var(--accent); }
-  select:hover { border-color: var(--text-dim); }
-
-  .swap-btn {
-    width:38px;
-    height:38px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius:10px;
-    color: var(--text-dim);
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:16px;
-    transition: all 0.2s;
-    flex-shrink:0;
-    margin-top:20px;
-  }
-
-  .swap-btn:hover { border-color: var(--accent); color: var(--accent2); transform:rotate(180deg); }
-
-  /* ── OPTIONS ── */
-  .options-row {
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-bottom:20px;
-  }
-
-  .option-chip {
-    display:flex;
-    align-items:center;
-    gap:6px;
-    padding: 8px 14px;
-    border-radius:8px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    cursor:pointer;
-    font-size:13px;
-    color: var(--text-dim);
-    transition: all 0.2s;
-    user-select:none;
-  }
-
-  .option-chip.selected {
-    border-color: var(--accent);
-    color: var(--accent2);
-    background: rgba(59,124,244,0.1);
-  }
-
-  .option-chip .dot {
-    width:7px; height:7px;
-    border-radius:50%;
-    background: var(--border);
-    transition: background 0.2s;
-  }
-
-  .option-chip.selected .dot { background: var(--accent); }
-
-  /* ── BUTTON ── */
-  .btn-primary {
-    width:100%;
-    padding: 14px;
-    background: var(--accent);
-    color: #fff;
-    border:none;
-    border-radius:10px;
-    font-size:15px;
-    font-weight:600;
-    font-family:'Noto Sans KR',sans-serif;
-    cursor:pointer;
-    letter-spacing:-0.2px;
-    transition: all 0.2s;
-    box-shadow: 0 0 0 0 var(--accent-glow);
-  }
-
-  .btn-primary:hover {
-    background: #2563eb;
-    box-shadow: 0 0 24px var(--accent-glow);
-    transform:translateY(-1px);
-  }
-
-  .btn-primary:active { transform:translateY(0); }
-
-  /* ── CONGESTION ── */
-  .congestion-card {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:14px 18px;
-    border-radius:10px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    margin-bottom:10px;
-  }
-
-  .cong-left { display:flex; align-items:center; gap:10px; }
-  .cong-dot { width:9px; height:9px; border-radius:50%; }
-  .cong-name { font-size:14px; font-weight:500; }
-  .cong-sub { font-size:12px; color:var(--text-dim); }
-  .cong-badge {
-    font-size:12px;
-    font-weight:600;
-    padding:4px 10px;
-    border-radius:6px;
-  }
-
-  .low  { --c:#10b981; }
-  .mid  { --c:#f59e0b; }
-  .high { --c:#ef4444; }
-
-  .cong-dot   { background: var(--c); box-shadow:0 0 6px var(--c); }
-  .cong-badge { color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); }
-
-  /* ── RESULT PAGE ── */
-  #resultPage { display:none; }
-
-  .result-meta {
-    display:grid;
-    grid-template-columns:1fr 1fr 1fr;
-    gap:12px;
-    margin-bottom:20px;
-  }
-
-  .meta-box {
-    background: var(--surface);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:16px;
-    text-align:center;
-  }
-
-  .meta-val {
-    font-size:22px;
-    font-weight:700;
-    color: var(--accent2);
-    font-family:'DM Mono',monospace;
-  }
-
-  .meta-label { font-size:11px; color:var(--text-dim); margin-top:4px; font-weight:500; }
-
-  .route-track {
-    padding:20px 0;
-    position:relative;
-  }
-
-  .route-step {
-    display:flex;
-    align-items:flex-start;
-    gap:14px;
-    margin-bottom:20px;
-    position:relative;
-  }
-
-  .route-step:not(:last-child)::after {
-    content:'';
-    position:absolute;
-    left:15px;
-    top:34px;
-    width:2px;
-    height:calc(100% - 10px);
-    background: linear-gradient(to bottom, var(--accent), var(--border));
-  }
-
-  .step-dot {
-    width:32px;
-    height:32px;
-    border-radius:50%;
-    background: var(--accent);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:13px;
-    font-weight:700;
-    flex-shrink:0;
-    color:#fff;
-    font-family:'DM Mono',monospace;
-    box-shadow: 0 0 12px rgba(59,124,244,0.4);
-  }
-
-  .step-dot.end {
-    background: var(--green);
-    box-shadow: 0 0 12px rgba(16,185,129,0.4);
-  }
-
-  .step-info { padding-top:4px; }
-  .step-name { font-size:15px; font-weight:600; }
-  .step-desc { font-size:13px; color:var(--text-dim); margin-top:3px; }
-
-  .tip-box {
-    background: rgba(245,158,11,0.08);
-    border:1px solid rgba(245,158,11,0.25);
-    border-radius:10px;
-    padding:14px 16px;
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    margin-top:16px;
-  }
-
-  .tip-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
-  .tip-text { font-size:13px; color: #fcd34d; line-height:1.6; }
-
-  .btn-back {
-    margin-top:20px;
-    width:100%;
-    padding:13px;
-    background: var(--surface);
-    color:var(--text-muted);
-    border:1px solid var(--border);
-    border-radius:10px;
-    font-size:14px;
-    font-family:'Noto Sans KR',sans-serif;
-    cursor:pointer;
-    transition:all 0.2s;
-  }
-
-  .btn-back:hover { border-color:var(--text-dim); color:var(--text); }
-
-  /* ── MAP PAGE ── */
-  .map-grid {
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:12px;
-  }
-
-  .map-bldg {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding:18px;
-    cursor:pointer;
-    transition: all 0.2s;
-    position:relative;
-    overflow:hidden;
-  }
-
-  .map-bldg::before {
-    content:'';
-    position:absolute;
-    inset:0;
-    background: var(--accent-glow);
-    opacity:0;
-    transition: opacity 0.2s;
-  }
-
-  .map-bldg:hover { border-color: var(--accent); transform:translateY(-2px); }
-  .map-bldg:hover::before { opacity:1; }
-
-  .bldg-emoji { font-size:28px; margin-bottom:10px; }
-  .bldg-name { font-size:14px; font-weight:700; margin-bottom:4px; }
-  .bldg-sub { font-size:12px; color:var(--text-dim); }
-
-  .bldg-tags {
-    display:flex;
-    flex-wrap:wrap;
-    gap:4px;
-    margin-top:10px;
-  }
-
-  .bldg-tag {
-    font-size:10px;
-    padding:2px 7px;
-    border-radius:4px;
-    background: rgba(59,124,244,0.12);
-    color: var(--accent2);
-    font-weight:500;
-  }
-
-  /* ── MODAL ── */
-  .modal-overlay {
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.6);
-    z-index:200;
-    align-items:center;
-    justify-content:center;
-    backdrop-filter:blur(4px);
-    animation:fadeIn 0.2s ease;
-  }
-
-  .modal-overlay.open { display:flex; }
-
-  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-
-  .modal {
-    background: var(--card);
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:28px;
-    width:90%;
-    max-width:400px;
-    animation:slideUp 0.25s ease;
-  }
-
-  @keyframes slideUp {
-    from{opacity:0;transform:translateY(20px)}
-    to{opacity:1;transform:translateY(0)}
-  }
-
-  .modal-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    margin-bottom:20px;
-  }
-
-  .modal-close {
-    background:none;
-    border:none;
-    color:var(--text-dim);
-    font-size:20px;
-    cursor:pointer;
-    padding:2px;
-    transition:color 0.2s;
-  }
-
-  .modal-close:hover { color:var(--text); }
-
-  .modal-bldg-name { font-size:20px; font-weight:700; margin-bottom:4px; }
-  .modal-bldg-sub { font-size:13px; color:var(--text-dim); }
-
-  .modal-info-row {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:10px 0;
-    border-bottom:1px solid var(--border);
-    font-size:14px;
-  }
-
-  .modal-info-row:last-child { border-bottom:none; }
-  .modal-info-row .icon { font-size:16px; width:20px; text-align:center; }
-  .modal-info-row .val { color:var(--text-muted); }
-
-  /* ── TIME BAR ── */
-  .time-notice {
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-size:13px;
-    color:var(--text-dim);
-    margin-bottom:16px;
-  }
-
-  .time-dot {
-    width:7px;height:7px;border-radius:50%;
-    background:var(--accent);
-    animation:pulse 1.5s infinite;
-  }
-
-  @keyframes pulse {
-    0%,100%{opacity:1;transform:scale(1)}
-    50%{opacity:0.5;transform:scale(0.8)}
-  }
-
-  /* responsive */
-  @media(max-width:600px){
-    .select-row{grid-template-columns:1fr}
-    .swap-btn{display:none}
-    .result-meta{grid-template-columns:1fr 1fr}
-    .map-grid{grid-template-columns:1fr 1fr}
-  }
+:root{--bg:#07090f;--sur:#0f1420;--card:#141b2d;--bdr:#1e2d4a;--acc:#2f6ef5;--acc2:#5b8fff;--glow:rgba(47,110,245,0.22);--tx:#dde4f0;--dim:#4a5a78;--mut:#7a8ba8;--grn:#0ea572;--org:#f59e0b;--red:#ef4444;--r:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 50% -10%,rgba(47,110,245,0.08),transparent);pointer-events:none;z-index:0}
+nav{position:sticky;top:0;z-index:100;height:54px;background:rgba(7,9,15,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
+.logo-pill{background:var(--acc);color:#fff;font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:5px;letter-spacing:.5px}
+.tabs{display:flex;gap:3px}
+.tab{padding:5px 13px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;color:var(--dim);border:none;background:none;font-family:'Noto Sans KR',sans-serif;transition:all .18s}
+.tab:hover{color:var(--mut);background:var(--sur)}.tab.on{color:var(--acc2);background:rgba(47,110,245,0.13)}
+.pg{display:none;padding:24px 18px;max-width:960px;margin:0 auto;position:relative;z-index:1}
+.pg.on{display:block;animation:fu .28s ease}
+@keyframes fu{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+.ph{margin-bottom:20px}.ph h1{font-size:22px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px}.ph p{color:var(--dim);font-size:13px}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:18px;margin-bottom:13px}
+.ct{font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--dim);margin-bottom:11px}
+.srow{display:grid;grid-template-columns:1fr 34px 1fr;gap:8px;align-items:end;margin-bottom:13px}
+.swrap{display:flex;flex-direction:column;gap:4px}.slabel{font-size:11px;color:var(--dim);font-weight:600}
+select{width:100%;background:var(--sur);border:1px solid var(--bdr);color:var(--tx);padding:10px 12px;border-radius:9px;font-size:13px;font-family:'Noto Sans KR',sans-serif;font-weight:500;appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%234a5a78' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color .18s}
+select:focus{outline:none;border-color:var(--acc)}
+.swapbtn{width:34px;height:34px;background:var(--sur);border:1px solid var(--bdr);border-radius:9px;color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
+.swapbtn:hover{border-color:var(--acc);color:var(--acc2);transform:rotate(180deg)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.chip{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:7px;border:1px solid var(--bdr);background:var(--sur);cursor:pointer;font-size:12px;color:var(--dim);transition:all .18s;user-select:none}
+.chip.on{border-color:var(--acc);color:var(--acc2);background:rgba(47,110,245,0.1)}
+.chip .d{width:6px;height:6px;border-radius:50%;background:var(--bdr);transition:background .18s}.chip.on .d{background:var(--acc)}
+.btnp{width:100%;padding:12px;background:var(--acc);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:all .18s}
+.btnp:hover{background:#1d5ce0;box-shadow:0 0 22px var(--glow);transform:translateY(-1px)}
+.btnb{margin-top:14px;width:100%;padding:11px;background:var(--sur);color:var(--mut);border:1px solid var(--bdr);border-radius:9px;font-size:13px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:all .18s}
+.btnb:hover{border-color:var(--dim);color:var(--tx)}
+.rmeta{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:13px}
+.mbox{background:var(--sur);border:1px solid var(--bdr);border-radius:9px;padding:13px;text-align:center}
+.mval{font-size:19px;font-weight:700;color:var(--acc2);font-family:'DM Mono',monospace}.mlabel{font-size:10px;color:var(--dim);margin-top:3px}
+.rtrack{padding:12px 0}
+.rstep{display:flex;align-items:flex-start;gap:11px;margin-bottom:16px;position:relative}
+.rstep:not(:last-child)::after{content:'';position:absolute;left:13px;top:29px;width:2px;height:calc(100% - 6px);background:linear-gradient(to bottom,var(--acc),var(--bdr))}
+.rdot{width:28px;height:28px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;color:#fff;font-family:'DM Mono',monospace;box-shadow:0 0 10px rgba(47,110,245,.4)}
+.rdot.end{background:var(--grn);box-shadow:0 0 10px rgba(14,165,114,.4)}
+.rinfo{padding-top:3px}.rname{font-size:13px;font-weight:600}.rdesc{font-size:11px;color:var(--dim);margin-top:2px}
+.tipbox{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:9px;padding:11px 13px;display:flex;gap:8px;align-items:flex-start;margin-bottom:7px}
+.tiptext{font-size:12px;color:#fcd34d;line-height:1.65}
+.mapwrap{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:13px}
+.mapwrap svg{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:7px}.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dim)}.ld{width:9px;height:9px;border-radius:3px}
+.ccard{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-radius:9px;background:var(--sur);border:1px solid var(--bdr);margin-bottom:7px}
+.cleft{display:flex;align-items:center;gap:9px}.cdot{width:8px;height:8px;border-radius:50%}.cname{font-size:13px;font-weight:500}.csub{font-size:11px;color:var(--dim)}.cbadge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px}
+.low{--c:#0ea572}.mid{--c:#f59e0b}.high{--c:#ef4444}
+.cdot{background:var(--c);box-shadow:0 0 6px var(--c)}.cbadge{color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.tnote{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);margin-bottom:13px}
+.tdot{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+.moverlay.on{display:flex;animation:fi .18s ease}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:22px;width:92%;max-width:370px;animation:su .22s ease;max-height:85vh;overflow-y:auto}
+@keyframes su{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.mhead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:13px}
+.mclose{background:none;border:none;color:var(--dim);font-size:19px;cursor:pointer}
+.mbn{font-size:17px;font-weight:700;margin-bottom:3px}.mbs{font-size:12px;color:var(--dim)}
+.mrow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bdr);font-size:13px}
+.mrow:last-of-type{border-bottom:none}.mrow .ic{width:18px;text-align:center}.mrow .vl{color:var(--mut);margin-left:auto}
+.rpath{stroke-dasharray:900;stroke-dashoffset:900;animation:dp 1.5s ease forwards}
+@keyframes dp{to{stroke-dashoffset:0}}
+@media(max-width:580px){.srow{grid-template-columns:1fr}.swapbtn{display:none}.rmeta{grid-template-columns:1fr 1fr}.tabs .tab{padding:5px 8px;font-size:11px}}
 </style>
 </head>
 <body>
-
 <nav>
-  <div class="nav-logo">
-    <span class="logo-badge">SSU</span>
-    캠퍼스 길찾기
-  </div>
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('main')">🗺 길찾기</button>
-    <button class="nav-tab" onclick="showPage('map')">🏛 건물정보</button>
-    <button class="nav-tab" onclick="showPage('congestion')">📊 혼잡도</button>
+  <div class="logo"><span class="logo-pill">SSU</span> 캠퍼스 길찾기</div>
+  <div class="tabs">
+    <button class="tab on" onclick="goPg('main',this)">🗺 길찾기</button>
+    <button class="tab"    onclick="goPg('map',this)">🏛 캠퍼스맵</button>
+    <button class="tab"    onclick="goPg('cong',this)">📊 혼잡도</button>
   </div>
 </nav>
 
-<!-- ──────────── PAGE 1: 길찾기 ──────────── -->
-<div class="page active" id="mainPage">
-  <div class="page-header">
-    <h1>어디로 가세요?</h1>
-    <p>출발지와 도착지를 선택하면 경로와 소요시간을 알려드려요</p>
-  </div>
-
+<div class="pg on" id="mainPg">
+  <div class="ph"><h1>어디로 가세요?</h1><p>출발·도착 건물을 선택하면 실측 기반 경로를 안내해드려요</p></div>
   <div class="card">
-    <div class="card-title">경로 설정</div>
-    <div class="select-row">
-      <div class="select-wrap">
-        <span class="select-label">출발</span>
-        <select id="startSel">
-          <option value="">출발 건물 선택</option>
-          <option value="정문">정문 (입구)</option>
-          <option value="형남공학관">형남공학관</option>
-          <option value="한경직기념관">한경직기념관</option>
-          <option value="숭실대학교본관">본관</option>
-          <option value="학생회관">학생회관</option>
-          <option value="조만식기념관">조만식기념관</option>
-          <option value="베어드홀">베어드홀</option>
-          <option value="전산관">전산관</option>
-          <option value="중앙도서관">중앙도서관</option>
-          <option value="학군단">학군단 건물</option>
-        </select>
-      </div>
-      <button class="swap-btn" onclick="swapBuildings()" title="출발/도착 바꾸기">⇄</button>
-      <div class="select-wrap">
-        <span class="select-label">도착</span>
-        <select id="endSel">
-          <option value="">도착 건물 선택</option>
-          <option value="정문">정문 (입구)</option>
-          <option value="형남공학관">형남공학관</option>
-          <option value="한경직기념관">한경직기념관</option>
-          <option value="숭실대학교본관">본관</option>
-          <option value="학생회관">학생회관</option>
-          <option value="조만식기념관">조만식기념관</option>
-          <option value="베어드홀">베어드홀</option>
-          <option value="전산관">전산관</option>
-          <option value="중앙도서관">중앙도서관</option>
-          <option value="학군단">학군단 건물</option>
-        </select>
-      </div>
+    <div class="ct">경로 설정</div>
+    <div class="srow">
+      <div class="swrap"><span class="slabel">출발</span><select id="ss"><option value="">출발 건물 선택</option></select></div>
+      <button class="swapbtn" onclick="doSwap()">⇄</button>
+      <div class="swrap"><span class="slabel">도착</span><select id="es"><option value="">도착 건물 선택</option></select></div>
     </div>
-
-    <div class="card-title" style="margin-top:4px">옵션</div>
-    <div class="options-row">
-      <div class="option-chip" id="opt-fast" onclick="toggleOpt('fast')">
-        <div class="dot"></div> ⚡ 최단 경로
-      </div>
-      <div class="option-chip selected" id="opt-indoor" onclick="toggleOpt('indoor')">
-        <div class="dot"></div> 🏠 실내 경로 우선
-      </div>
-      <div class="option-chip" id="opt-elevator" onclick="toggleOpt('elevator')">
-        <div class="dot"></div> 🛗 엘리베이터 포함
-      </div>
-      <div class="option-chip" id="opt-rain" onclick="toggleOpt('rain')">
-        <div class="dot"></div> 🌧 비 오는 날 모드
-      </div>
+    <div class="ct">옵션</div>
+    <div class="chips">
+      <div class="chip on" id="o-ind" onclick="tog('ind')"><div class="d"></div>🏠 실내 우선</div>
+      <div class="chip"    id="o-elv" onclick="tog('elv')"><div class="d"></div>🛗 엘리베이터</div>
+      <div class="chip"    id="o-rai" onclick="tog('rai')"><div class="d"></div>🌧 비 오는 날</div>
     </div>
-
-    <button class="btn-primary" onclick="findRoute()">🔍 길찾기</button>
+    <button class="btnp" onclick="findRoute()">🔍 길찾기</button>
   </div>
-
-  <!-- quick preset -->
   <div class="card">
-    <div class="card-title">자주 찾는 경로</div>
-    <div class="options-row" style="margin-bottom:0">
-      <div class="option-chip" onclick="quickRoute('정문','형남공학관')">정문 → 형남공학관</div>
-      <div class="option-chip" onclick="quickRoute('학생회관','중앙도서관')">학생회관 → 도서관</div>
-      <div class="option-chip" onclick="quickRoute('정문','전산관')">정문 → 전산관</div>
-      <div class="option-chip" onclick="quickRoute('형남공학관','학생회관')">공학관 → 학생회관</div>
-    </div>
+    <div class="ct">자주 찾는 경로</div>
+    <div class="chips" style="margin-bottom:0" id="presets"></div>
   </div>
 </div>
 
-<!-- ──────────── RESULT (overlay) ──────────── -->
-<div class="page" id="resultPage">
-  <div class="page-header">
-    <h1 id="routeTitle">경로 안내</h1>
-    <p id="routeSub"></p>
+<div class="pg" id="resPg">
+  <div class="ph"><h1 id="rtitle">경로 안내</h1><p id="rsub"></p></div>
+  <div id="minimap" style="width:100%;height:240px;border-radius:12px;overflow:hidden;margin-bottom:13px;border:1px solid var(--bdr)"></div>
+  <div class="rmeta">
+    <div class="mbox"><div class="mval" id="mtime">—</div><div class="mlabel">예상 시간</div></div>
+    <div class="mbox"><div class="mval" id="mdist">—</div><div class="mlabel">거리</div></div>
+    <div class="mbox"><div class="mval" id="mstep">—</div><div class="mlabel">경유지</div></div>
   </div>
+  <div class="card"><div class="ct">이동 경로</div><div class="rtrack" id="rtrack"></div></div>
+  <div class="card"><div class="ct">💡 이동 팁</div><div id="tips"></div></div>
+  <button class="btnb" onclick="goBack()">← 다시 검색하기</button>
+</div>
 
-  <div class="result-meta">
-    <div class="meta-box">
-      <div class="meta-val" id="metaTime">—</div>
-      <div class="meta-label">예상 소요시간</div>
-    </div>
-    <div class="meta-box">
-      <div class="meta-val" id="metaDist">—</div>
-      <div class="meta-label">예상 거리</div>
-    </div>
-    <div class="meta-box">
-      <div class="meta-val" id="metaSteps">—</div>
-      <div class="meta-label">경유지 수</div>
-    </div>
-  </div>
-
+<div class="pg" id="mapPg">
+  <div class="ph"><h1>캠퍼스 맵</h1><p>마커를 탭하면 건물 상세 정보를 볼 수 있어요</p></div>
+  <div id="kakaoMap" style="width:100%;height:460px;border-radius:12px;overflow:hidden;margin-bottom:13px;border:1px solid var(--bdr)"></div>
   <div class="card">
-    <div class="card-title">이동 경로</div>
-    <div class="route-track" id="routeTrack"></div>
+    <div class="ct">범례</div>
+    <div class="legend">
+      <div class="li"><span style="font-size:14px">🔵</span>강의·연구동</div>
+      <div class="li"><span style="font-size:14px">🟢</span>편의·학생시설</div>
+      <div class="li"><span style="font-size:14px">🟠</span>기념관·행정</div>
+      <div class="li"><span style="font-size:14px">🟣</span>도서관</div>
+      <div class="li"><span style="font-size:14px">🔴</span>출입구</div>
+    </div>
   </div>
-
-  <div class="card" id="tipCard">
-    <div class="card-title">💡 이동 팁</div>
-    <div id="tipContent"></div>
-  </div>
-
-  <button class="btn-back" onclick="goBack()">← 다시 검색하기</button>
 </div>
 
-<!-- ──────────── PAGE 2: 건물정보 ──────────── -->
-<div class="page" id="mapPage">
-  <div class="page-header">
-    <h1>건물 정보</h1>
-    <p>건물을 클릭하면 위치, 편의시설, 엘리베이터 정보를 확인할 수 있어요</p>
-  </div>
-  <div class="map-grid" id="mapGrid"></div>
+<div class="pg" id="congPg">
+  <div class="ph"><h1>실시간 혼잡도</h1><p>현재 시각 기반 혼잡도 예측이에요</p></div>
+  <div class="tnote"><div class="tdot"></div><span id="tl"></span> 기준</div>
+  <div id="conglist"></div>
 </div>
 
-<!-- ──────────── PAGE 3: 혼잡도 ──────────── -->
-<div class="page" id="congestionPage">
-  <div class="page-header">
-    <h1>실시간 혼잡도</h1>
-    <p>현재 시각 기준 각 건물/구역의 혼잡도를 보여줍니다</p>
-  </div>
-
-  <div class="time-notice">
-    <div class="time-dot"></div>
-    <span id="currentTimeLabel"></span> 기준 혼잡도
-  </div>
-
-  <div id="congestionList"></div>
-</div>
-
-<!-- ──────────── MODAL ──────────── -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
-  <div class="modal" id="modalContent"></div>
+<div class="moverlay" id="mov" onclick="closeMod(event)">
+  <div class="modal" id="mcon"></div>
 </div>
 
 <script>
-// ── DATA ──
-const BUILDINGS = {
+// ═══════════════════════════════════════════════════════════
+// SVG 좌표 — 네이버지도 4장 정밀 분석
+//
+// viewBox: 0 0 760 700
+// 스케일: 네이버지도 50m 바 기준 → 1px ≈ 0.72m
+//
+// 방향:
+//   ← 서(문화관·숭덕경상관)   동(글로벌브레인홀) →
+//   ↑ 북(조만식·대운동장)
+//   ↓ 남(사당로·정문)
+//
+// 정문(숭실대입구역 3번출구) = 좌하단
+// 남문(사당로 미래관/전산관 앞) = 하단 중앙우측
+// ═══════════════════════════════════════════════════════════
+// [x, y, w, h, color, label]
+const C = {
+  // ── 출입구 ──────────────────────────────────────────────
+  "숭실대입구역(정문)": [ 40, 628,  84, 26, "#ef4444", "정문(3번출구)"],
+  // 남문: 사당로에서 미래관·전산관 사이로 진입 (이미지3 기준)
+  "남문":               [430, 628,  46, 24, "#ef4444", "남문"],
+  // 중문: 캠퍼스 동쪽 (상도로55길 방향, 이미지3 기준)
+  "중문":               [690, 360,  44, 22, "#ef4444", "중문"],
+
+  // ── 사당로 인접 하단 (이미지4) ──────────────────────────
+  // 정문 → 안익태기념관 → 형남공학관 순 (좌→우)
+  "안익태기념관":       [150, 558,  78, 44, "#f59e0b", "안익태기념관"],
+  "형남공학관":         [255, 535,  92, 58, "#2f6ef5", "형남공학관"],
+  "한국기독교박물관":   [370, 550,  78, 44, "#f59e0b", "기독교박물관"],
+
+  // ── 서쪽 (이미지4,1) ────────────────────────────────────
+  // 문화관: 정문 우측 위, 숭덕경상관 아래
+  "문화관":             [ 40, 470,  70, 44, "#f59e0b", "문화관"],
+  "숭덕경상관":         [ 40, 390,  80, 46, "#2f6ef5", "숭덕경상관"],
+  "슈파크":             [ 40, 315,  68, 40, "#22c55e", "슈파크"],
+
+  // ── 중앙 좌측: 베어드홀 (이미지1) ──────────────────────
+  // 베어드홀: 한경직기념관 바로 서쪽
+  "베어드홀":           [150, 470,  80, 46, "#2f6ef5", "베어드홀"],
+
+  // ── 중앙: 한경직·미래관 (이미지1,3) ────────────────────
+  // 한경직기념관: 형남공학관 위
+  "한경직기념관":       [255, 455,  88, 48, "#f59e0b", "한경직기념관"],
+  // 미래관: 한경직 우측, 남문 바로 위
+  "미래관":             [365, 490,  80, 50, "#2f6ef5", "미래관"],
+  // 농구장: 미래관 아래 (참고용, 표시)
+  "농구장":             [365, 570,  60, 30, "#22c55e", "농구장"],
+
+  // ── 중앙: 학생회관·진리관 (이미지1) ────────────────────
+  // 학생회관: 캠퍼스 서쪽 중앙, 진리관 왼쪽
+  "학생회관":           [150, 365,  84, 48, "#0ea572", "학생회관"],
+  "진리관":             [255, 368,  82, 48, "#2f6ef5", "진리관"],
+
+  // ── 우측: 전산관 (이미지1,3) ────────────────────────────
+  // 전산관: 미래관 우측, 남문에서 오르면 바로
+  "전산관":             [465, 470,  88, 54, "#2f6ef5", "전산관"],
+
+  // ── 중앙: 신양관·도서관·연구관 (이미지1,2) ─────────────
+  // 신양관: 베어드홀 위, 도서관 왼쪽
+  "신양관":             [150, 288,  82, 48, "#2f6ef5", "신양관"],
+  // 중앙도서관: 캠퍼스 정중앙
+  "중앙도서관":         [255, 278,  94, 58, "#8b5cf6", "중앙도서관"],
+  // 연구관: 도서관 우측 (이미지2)
+  "연구관":             [370, 275,  78, 50, "#2f6ef5", "연구관"],
+
+  // ── 우측 중단: 창신관·글로벌브레인홀·레지던스홀 (이미지2,3) ─
+  // 창신관: 전산관 위, 상도로55길 인접
+  "창신관":             [570, 350,  76, 44, "#2f6ef5", "창신관"],
+  // 글로벌브레인홀: 창신관 위 (이미지3)
+  "글로벌브레인홀":     [570, 270,  78, 46, "#2f6ef5", "글로벌브레인홀"],
+  // 레지던스홀: 글로벌브레인홀 위 (이미지3)
+  "레지던스홀":         [570, 195,  76, 46, "#0ea572", "레지던스홀"],
+
+  // ── 상단: 웨스트민스터홀·조만식·벤처중기 (이미지2) ─────
+  "웨스트민스터홀":     [255, 205,  90, 48, "#f59e0b", "웨스트민스터홀"],
+  "조만식기념관":       [255, 140,  92, 48, "#f59e0b", "조만식기념관"],
+  "벤처중소기업센터":   [370, 195,  80, 44, "#0ea572", "벤처중기센터"],
+
+  // ── 최상단: 대운동장·백마관·교육관 (이미지1) ────────────
+  // 대운동장: 캠퍼스 북서쪽
+  "대운동장":           [150, 130, 148, 88, "#22c55e", "대운동장"],
+  "백마관":             [150,  60,  84, 44, "#2f6ef5", "백마관"],
+  "교육관":             [255,  60,  80, 44, "#2f6ef5", "교육관"],
+
+  // ── 하단 우측: 창의관·정보과학관 (이미지3) ──────────────
+  // 사당로 남측, 남문 오른쪽에 위치
+  "창의관":             [480, 590,  76, 40, "#2f6ef5", "창의관"],
+  "정보과학관":         [580, 590,  82, 40, "#2f6ef5", "정보과학관"],
+};
+
+// ── 실측 거리 테이블 (m) ─────────────────────────────────
+const DIST = {
+  "숭실대입구역(정문)": {
+    "안익태기념관":      130, "형남공학관":      190,
+    "한국기독교박물관":  250, "문화관":          195,
+    "베어드홀":          280, "한경직기념관":    300,
+    "학생회관":          250, "미래관":          360,
+    "남문":              350, "전산관":          420,
+    "신양관":            400, "중앙도서관":      441,
+    "진리관":            310, "숭덕경상관":      310,
+    "창의관":            490, "정보과학관":      550,
+  },
   "형남공학관": {
-    emoji:"🏗",
-    sub:"공과대학 강의동",
-    floors:"B1~9F",
-    elevator:true,
-    cafe:false,
-    convenience:false,
-    printer:true,
-    tags:["공학관","실습실","강의실"],
-    desc:"컴퓨터학부, 전기공학부 등 공과대학 주요 강의동. 1층에 편의점 없음, 지하 1층 식당 운영.",
-    rooms:"101~109(1F) 201~209(2F) 등"
+    "안익태기념관":       80, "한국기독교박물관": 110,
+    "베어드홀":          130, "한경직기념관":    130,
+    "미래관":            140, "신양관":          190,
+    "중앙도서관":        260, "학생회관":        190,
+    "슈파크":            190, "숭덕경상관":      200,
   },
   "한경직기념관": {
-    emoji:"⛪",
-    sub:"채플 및 강당",
-    floors:"1~4F",
-    elevator:true,
-    cafe:false,
-    convenience:false,
-    printer:false,
-    tags:["채플","강당","행사"],
-    desc:"채플 예배 및 대형 행사 공간. 매주 수요일 채플 필수 참석.",
-    rooms:"대강당, 소예배실"
+    "미래관":             90, "전산관":          190,
+    "진리관":            140, "학생회관":        160,
+    "중앙도서관":        200, "베어드홀":        110,
   },
-  "숭실대학교본관": {
-    emoji:"🏛",
-    sub:"행정 본관",
-    floors:"1~6F",
-    elevator:true,
-    cafe:true,
-    convenience:false,
-    printer:false,
-    tags:["행정실","교학처","장학"],
-    desc:"교학처, 장학팀, 총장실 등 학교 행정 중심 건물.",
-    rooms:"교학처(1F), 학생처(2F)"
+  "미래관": {
+    "전산관":            100, "남문":             80,
+    "농구장":             50, "중앙도서관":      200,
+    "연구관":            160,
   },
-  "학생회관": {
-    emoji:"🎭",
-    sub:"학생 편의시설",
-    floors:"1~5F",
-    elevator:true,
-    cafe:true,
-    convenience:true,
-    printer:true,
-    tags:["편의점","카페","동아리","식당"],
-    desc:"편의점, 카페, 학생식당, 동아리방이 모여있는 학생 활동 중심지. 가장 많이 찾는 건물.",
-    rooms:"학생식당(1F), 편의점(1F), 카페(2F)"
-  },
-  "조만식기념관": {
-    emoji:"📚",
-    sub:"인문사회과학대학",
-    floors:"1~7F",
-    elevator:true,
-    cafe:false,
-    convenience:false,
-    printer:true,
-    tags:["인문","사회","강의실"],
-    desc:"인문사회과학대학 강의동. 철학, 역사학, 사학 등 인문계열 수업이 주로 진행됨.",
-    rooms:"101~108, 201~208 등"
-  },
-  "베어드홀": {
-    emoji:"🎓",
-    sub:"국제관/영어관",
-    floors:"1~5F",
-    elevator:false,
-    cafe:false,
-    convenience:false,
-    printer:false,
-    tags:["영어","국제","어학"],
-    desc:"영어 관련 수업 및 국제 프로그램 진행. 1층에 영어 라운지 운영.",
-    rooms:"영어라운지(1F), 세미나실"
+  "남문": {
+    "전산관":             90, "창의관":          110,
+    "정보과학관":        160,
   },
   "전산관": {
-    emoji:"💻",
-    sub:"IT대학 강의동",
-    floors:"1~6F",
-    elevator:true,
-    cafe:false,
-    convenience:false,
-    printer:true,
-    tags:["컴퓨터","IT","실습실"],
-    desc:"소프트웨어학부, AI학부 등 IT 계열 강의 및 실습 공간. 컴퓨터실 다수 보유.",
-    rooms:"컴퓨터실(2~3F), 강의실(4~6F)"
+    "창신관":            120, "진리관":          150,
+    "학생회관":          160, "연구관":          140,
+    "글로벌브레인홀":    185, "레지던스홀":      200,
+    "창의관":            180, "정보과학관":      165,
+    "중앙도서관":        200,
   },
   "중앙도서관": {
-    emoji:"📖",
-    sub:"중앙도서관",
-    floors:"B1~5F",
-    elevator:true,
-    cafe:true,
-    convenience:false,
-    printer:true,
-    tags:["도서관","열람실","카페"],
-    desc:"24시간 열람실 운영. 1층 카페 및 복사실. 노트북 대여 가능.",
-    rooms:"열람실(1~4F), 카페(1F), 복사실(B1)"
-  }
+    "신양관":            110, "연구관":          120,
+    "웨스트민스터홀":     90, "조만식기념관":    160,
+    "진리관":            130, "학생회관":        190,
+    "벤처중소기업센터":  150,
+  },
+  "학생회관": {
+    "진리관":             90, "신양관":          130,
+    "베어드홀":          110, "숭덕경상관":      160,
+  },
+  "조만식기념관": {
+    "웨스트민스터홀":     80, "벤처중소기업센터": 140,
+    "백마관":            140, "교육관":          160,
+  },
+  "창의관": {"정보과학관": 80},
+  "백마관":  {"교육관": 80, "대운동장": 55},
+  "연구관":  {"창신관": 130, "벤처중소기업센터": 110, "글로벌브레인홀": 160},
+  "베어드홀":{"슈파크": 85, "신양관": 130, "숭덕경상관": 100},
+  "슈파크":  {"숭덕경상관": 80},
 };
 
+function getDist(a, b) {
+  if (DIST[a]?.[b] !== undefined) return DIST[a][b];
+  if (DIST[b]?.[a] !== undefined) return DIST[b][a];
+  const ca=C[a], cb=C[b];
+  if(!ca||!cb) return 350;
+  const dx=(ca[0]+ca[2]/2)-(cb[0]+cb[2]/2);
+  const dy=(ca[1]+ca[3]/2)-(cb[1]+cb[3]/2);
+  return Math.round(Math.sqrt(dx*dx+dy*dy)*0.72);
+}
+
+// ── 경로 데이터 ──────────────────────────────────────────
 const ROUTES = {
-  "정문→형남공학관": { time:"5분", dist:"350m", via:["정문","중앙광장","형남공학관"], tips:"정문 들어와서 직진 후 왼쪽 계단 오르면 됩니다.", rainTip:"비 올 때는 조만식기념관 로비를 통해 우회하세요." },
-  "정문→학생회관": { time:"4분", dist:"280m", via:["정문","중앙광장","학생회관"], tips:"정문 들어와서 직진하면 오른쪽에 학생회관이 보입니다.", rainTip:null },
-  "정문→전산관": { time:"6분", dist:"430m", via:["정문","중앙광장","형남공학관 앞","전산관"], tips:"형남공학관을 지나 오른쪽으로 꺾으면 전산관입니다.", rainTip:"비 올 때는 형남공학관 건물 내부를 통해 이동하세요." },
-  "정문→중앙도서관": { time:"5분", dist:"380m", via:["정문","중앙광장","중앙도서관"], tips:"정문에서 직진 후 우측 경사로를 오르면 도서관 입구입니다.", rainTip:null },
-  "학생회관→중앙도서관": { time:"3분", dist:"200m", via:["학생회관","중앙광장","중앙도서관"], tips:"학생회관 정문 나와서 오른쪽으로 오르막길 올라가면 도서관입니다.", rainTip:null },
-  "학생회관→형남공학관": { time:"4분", dist:"290m", via:["학생회관","중앙광장","형남공학관"], tips:"중앙광장을 가로질러 왼쪽 계단을 오르면 공학관입니다.", rainTip:"비 올 때는 한경직기념관 로비를 통해 우회하세요." },
-  "형남공학관→학생회관": { time:"4분", dist:"290m", via:["형남공학관","중앙광장","학생회관"], tips:"공학관 정문에서 계단 내려와 중앙광장 건너면 학생회관입니다.", rainTip:"비 올 때는 한경직기념관 로비를 통해 우회하세요." },
-  "형남공학관→전산관": { time:"3분", dist:"180m", via:["형남공학관","건물 사이 통로","전산관"], tips:"형남공학관 측면 통로로 나오면 바로 전산관이 보입니다.", rainTip:null },
-  "전산관→학생회관": { time:"5분", dist:"350m", via:["전산관","형남공학관 앞","중앙광장","학생회관"], tips:"전산관 정문에서 형남공학관 방향으로 내려오면 됩니다.", rainTip:null },
+  "숭실대입구역(정문)→형남공학관":   {via:["숭실대입구역(정문)","안익태기념관","형남공학관"],        tip:"정문에서 횡단보도 건너 직진하면 안익태기념관 옆으로 형남공학관이 나옵니다.",rain:"처마 아래를 따라 이동하세요."},
+  "숭실대입구역(정문)→한경직기념관": {via:["숭실대입구역(정문)","형남공학관","한경직기념관"],         tip:"형남공학관 왼쪽 계단을 오르면 한경직기념관입니다. 수요일 채플 시간엔 혼잡합니다.",rain:null},
+  "숭실대입구역(정문)→미래관":       {via:["숭실대입구역(정문)","형남공학관","미래관"],               tip:"형남공학관 우측으로 돌아가면 미래관·농구장이 보입니다. 남문에서 오는 게 더 빠를 수도 있어요.",rain:null},
+  "숭실대입구역(정문)→전산관":       {via:["숭실대입구역(정문)","남문","전산관"],                     tip:"정문보다 남문 버스정류장에서 내려 바로 오르는 게 더 빠릅니다 (남문→전산관 90m).",rain:"미래관 내부를 통해 이동 가능합니다."},
+  "숭실대입구역(정문)→학생회관":     {via:["숭실대입구역(정문)","한국기독교박물관","학생회관"],        tip:"기독교박물관을 지나 계속 직진하면 학생회관입니다. 1층에 식당·편의점 있어요.",rain:null},
+  "숭실대입구역(정문)→중앙도서관":   {via:["숭실대입구역(정문)","형남공학관","신양관","중앙도서관"],  tip:"형남공학관 좌측 오르막 → 신양관 → 도서관.",rain:"신양관 내부 통로를 이용하면 비를 피할 수 있습니다."},
+  "숭실대입구역(정문)→진리관":       {via:["숭실대입구역(정문)","한국기독교박물관","진리관"],          tip:"기독교박물관 방향으로 오르다 보면 진리관이 나옵니다.",rain:null},
+  "숭실대입구역(정문)→창의관":       {via:["숭실대입구역(정문)","남문","창의관"],                     tip:"남문 버스정류장 근처에 창의관이 있습니다. 정문보다 남문이 훨씬 가깝습니다.",rain:null},
+  "숭실대입구역(정문)→정보과학관":   {via:["숭실대입구역(정문)","남문","창의관","정보과학관"],         tip:"남문 버스정류장에서 내리면 창의관·정보과학관이 바로 보입니다.",rain:null},
+  "남문→전산관":                     {via:["남문","전산관"],                                           tip:"남문에서 바로 위로 올라가면 전산관입니다.",rain:null},
+  "남문→미래관":                     {via:["남문","미래관"],                                           tip:"남문에서 왼쪽 방향으로 올라가면 미래관입니다.",rain:null},
+  "남문→창의관":                     {via:["남문","창의관"],                                           tip:"남문 오른쪽 사당로를 따라가면 창의관입니다.",rain:null},
+  "형남공학관→전산관":               {via:["형남공학관","미래관","남문","전산관"],                      tip:"형남공학관 우측 → 미래관 앞 → 남문 방향으로 내려가면 전산관입니다.",rain:null},
+  "형남공학관→중앙도서관":           {via:["형남공학관","신양관","중앙도서관"],                         tip:"형남공학관 좌측 오르막 → 신양관 → 도서관.",rain:"신양관 내부 통로를 이용하세요."},
+  "형남공학관→학생회관":             {via:["형남공학관","한경직기념관","학생회관"],                      tip:"한경직기념관 방향으로 올라가면 학생회관이 나옵니다.",rain:null},
+  "전산관→정보과학관":               {via:["전산관","남문","정보과학관"],                               tip:"전산관에서 남문 방향으로 내려오면 창의관·정보과학관이 있습니다.",rain:null},
+  "전산관→창의관":                   {via:["전산관","남문","창의관"],                                   tip:"전산관에서 남문 방향으로 내려오면 창의관이 보입니다.",rain:null},
+  "전산관→학생회관":                 {via:["전산관","진리관","학생회관"],                               tip:"전산관에서 진리관 방향으로 내려오면 학생회관입니다.",rain:null},
+  "전산관→창신관":                   {via:["전산관","창신관"],                                         tip:"전산관 위쪽으로 올라가면 창신관입니다.",rain:null},
+  "학생회관→중앙도서관":             {via:["학생회관","진리관","중앙도서관"],                           tip:"학생회관에서 진리관 옆 오르막을 오르면 도서관이 나옵니다.",rain:null},
+  "중앙도서관→조만식기념관":         {via:["중앙도서관","웨스트민스터홀","조만식기념관"],               tip:"도서관에서 위로 오르면 웨스트민스터홀 → 조만식기념관입니다.",rain:null},
+  "창의관→정보과학관":               {via:["창의관","정보과학관"],                                     tip:"창의관 바로 옆이 정보과학관입니다.",rain:null},
 };
 
-function getRouteKey(a, b) {
-  const key1 = `${a}→${b}`;
-  const key2 = `${b}→${a}`;
-  if (ROUTES[key1]) return { ...ROUTES[key1], reversed:false };
-  if (ROUTES[key2]) return { ...ROUTES[key2], reversed:true, via:[...ROUTES[key2].via].reverse() };
-  return null;
+const WALK_SPEED = 75;
+
+function getRoute(a, b) {
+  const k1=`${a}→${b}`, k2=`${b}→${a}`;
+  let rd=null;
+  if(ROUTES[k1]) rd={...ROUTES[k1]};
+  else if(ROUTES[k2]) rd={...ROUTES[k2], via:[...ROUTES[k2].via].reverse()};
+  else rd={via:[a,b], tip:"캠퍼스 내부 도로를 따라 이동하세요.", rain:"비 오는 날엔 건물 처마 아래를 따라 이동하면 편합니다."};
+  let totalDist=0;
+  for(let i=0;i<rd.via.length-1;i++) totalDist+=getDist(rd.via[i],rd.via[i+1]);
+  const mins=Math.max(1,Math.round(totalDist/WALK_SPEED));
+  return{...rd,dist:totalDist,mins};
 }
 
-function estimateRoute(a, b) {
-  const mins = Math.floor(Math.random()*6)+3;
-  const dist = mins*70 + Math.floor(Math.random()*50);
-  return { time:`${mins}분`, dist:`${dist}m`, via:[a,"중앙광장", b], tips:"캠퍼스 중앙광장을 통해 이동하세요.", rainTip:"비 오는 날에는 건물 처마 아래를 따라 이동하시면 편합니다." };
+// ── 건물 정보 ─────────────────────────────────────────────
+const BINFO = {
+  "숭실대입구역(정문)":{emoji:"🚇",sub:"7호선 3번 출구",floors:"—",elv:true,cafe:false,conv:false,print:false,dept:"출입구",desc:"지하철 7호선 숭실대입구역 3번 출구에서 횡단보도를 건너면 정문. 4번 출구는 반대 방향. 가장 가까운 건물: 안익태기념관 130m, 형남공학관 190m."},
+  "안익태기념관":      {emoji:"🎵",sub:"음악대학 강의동",floors:"지상 4층",elv:false,cafe:false,conv:false,print:false,dept:"음악대학",desc:"애국가 작곡가 안익태 선생 기념 건물. 음악대학 강의 및 연습 공간. 정문에서 130m로 가장 가까운 건물 중 하나."},
+  "형남공학관":        {emoji:"🏗",sub:"공과대학 주요 강의동",floors:"지상 15층/지하 1층",elv:true,cafe:false,conv:false,print:true,dept:"공과대학",desc:"숭실대 이사장·총장 역임 김형남 박사의 이름을 딴 건물. 지상 15층에서 63빌딩·한강·남산타워 조망 가능. 건축학부·기계공학부·전기공학부·화학공학과 강의동."},
+  "한국기독교박물관":  {emoji:"🏛",sub:"기독교 역사 박물관",floors:"지상 4층",elv:true,cafe:false,conv:false,print:false,dept:"박물관",desc:"한국 기독교 역사와 숭실대 역사 보존·전시. 상설전시실 무료 관람 가능."},
+  "한경직기념관":      {emoji:"⛪",sub:"채플·강당",floors:"지상 4층",elv:true,cafe:false,conv:false,print:false,dept:"채플(전교생 필수)",desc:"초대 이사장 한경직 목사 기념 건물. 전교생 필수 채플(수요일) 진행. 대강당 및 소예배실 보유."},
+  "미래관":            {emoji:"🚀",sub:"첨단 강의동",floors:"지상 8층/지하 1층",elv:true,cafe:true,conv:false,print:true,dept:"공과대학, IT대학",desc:"대형 첨단 강의실 및 실험실 보유. 1층 카페 운영. 남문 바로 위에 위치."},
+  "농구장":            {emoji:"🏀",sub:"농구장",floors:"야외",elv:false,cafe:false,conv:false,print:false,dept:"체육",desc:"미래관 앞 농구장. 캠퍼스 남쪽 위치."},
+  "전산관":            {emoji:"💻",sub:"IT대학 주요 강의동",floors:"지상 6층/지하 1층",elv:true,cafe:false,conv:false,print:true,dept:"IT대학",desc:"소프트웨어학부·AI융합학부 강의 및 실습. 컴퓨터 실습실 다수. 남문에서 90m로 매우 가깝습니다."},
+  "문화관":            {emoji:"🎨",sub:"인문대학 강의동",floors:"지상 5층",elv:false,cafe:false,conv:false,print:false,dept:"인문대학",desc:"인문대학 강의 공간. 국어국문학과·영어영문학과·철학과·사학과 강의 진행."},
+  "숭덕경상관":        {emoji:"📊",sub:"경영·경제대학",floors:"지상 7층/지하 1층",elv:true,cafe:false,conv:false,print:true,dept:"경영대학, 경제통상대학",desc:"경영학부·회계학부·경제학과·국제통상학과 강의동."},
+  "슈파크":            {emoji:"🏊",sub:"종합체육관",floors:"지상 3층/지하 1층",elv:false,cafe:false,conv:false,print:false,dept:"체육",desc:"수영장·헬스장·배드민턴장 등 체육시설 운영."},
+  "베어드홀":          {emoji:"🎓",sub:"베어드학부대학",floors:"지상 5층/지하 1층",elv:true,cafe:false,conv:false,print:false,dept:"베어드학부대학",desc:"1988년 준공. 유리거울 외관, 장애인 배려 구조로 한국건축작가협회상 수상. 교양 강의 공간."},
+  "학생회관":          {emoji:"🎭",sub:"학생 편의시설",floors:"지상 5층",elv:true,cafe:true,conv:true,print:true,dept:"학생처",desc:"학생 활동의 중심. 1층 학생식당·편의점, 2층 카페, 각 층 동아리방. 점심시간 매우 혼잡. 정문에서 250m."},
+  "진리관":            {emoji:"🏢",sub:"법·사회과학 강의동",floors:"지상 5층",elv:false,cafe:false,conv:false,print:false,dept:"법과대학, 사회과학대학",desc:"법학과·행정학부·사회복지학부·언론홍보학과 강의동."},
+  "신양관":            {emoji:"🏢",sub:"사범·자연과학 강의동",floors:"지상 6층/지하 1층",elv:true,cafe:false,conv:false,print:true,dept:"사범대학, 자연과학대학",desc:"사범대학 및 자연과학대학 강의 공간. 수학과·물리학과·화학과 등 이과 계열 강의."},
+  "중앙도서관":        {emoji:"📖",sub:"중앙도서관",floors:"지상 5층/지하 1층",elv:true,cafe:true,conv:false,print:true,dept:"도서관",desc:"장서 100만 권 이상. 24시간 열람실. 1층 카페·복사실, B1 서고. 노트북 대여 가능. 정문에서 441m."},
+  "연구관":            {emoji:"🔬",sub:"연구·IT 강의동",floors:"지상 6층",elv:true,cafe:false,conv:false,print:true,dept:"IT대학, 연구소",desc:"연구소 및 IT대학 일부 강의 공간. 이마트24 근처."},
+  "창신관":            {emoji:"✨",sub:"IT·AI 강의동",floors:"지상 6층",elv:true,cafe:false,conv:false,print:true,dept:"IT대학, AI대학",desc:"소프트웨어학부·인공지능학부 강의동. 스터디룸 예약 가능. 상도로55길 인접."},
+  "글로벌브레인홀":    {emoji:"🌐",sub:"글로벌 교육동",floors:"지상 6층",elv:true,cafe:false,conv:false,print:false,dept:"글로벌인재학부",desc:"글로벌 인재 양성 프로그램 강의동. 북문으로 나오면 동작14번 마을버스 이용 가능."},
+  "레지던스홀":        {emoji:"🏠",sub:"민자 기숙사",floors:"지상 12층",elv:true,cafe:false,conv:true,print:false,dept:"기숙사",desc:"민자 기숙사. 1층 편의점 운영. 전산관·글로벌브레인홀 인근."},
+  "웨스트민스터홀":    {emoji:"🕍",sub:"생활관(기숙사)",floors:"지상 8층",elv:true,cafe:false,conv:false,print:false,dept:"기숙사",desc:"학교 직영 기숙사. 조만식기념관·도서관 인근."},
+  "조만식기념관":      {emoji:"📚",sub:"인문·사회과학 강의동",floors:"지상 7층/지하 1층",elv:true,cafe:false,conv:false,print:true,dept:"인문대학, 사회과학대학",desc:"독립운동가 조만식 선생 기념 건물. 인문·사회과학대학 대형 강의실 보유."},
+  "벤처중소기업센터":  {emoji:"💼",sub:"창업·산학협력",floors:"지상 5층",elv:true,cafe:false,conv:false,print:false,dept:"창업 지원",desc:"학생 창업 지원 및 중소기업 입주 공간."},
+  "대운동장":          {emoji:"⚽",sub:"대운동장",floors:"야외",elv:false,cafe:false,conv:false,print:false,dept:"체육",desc:"축구장 규모 대운동장. 각종 체육대회 및 학교 행사 공간. 캠퍼스 북서쪽."},
+  "백마관":            {emoji:"🏢",sub:"강의동",floors:"지상 4층",elv:false,cafe:false,conv:false,print:false,dept:"여러 학과 공동",desc:"소규모 강의실 위주 강의동. 대운동장 북쪽."},
+  "교육관":            {emoji:"📝",sub:"사범대학 강의동",floors:"지상 6층",elv:true,cafe:false,conv:false,print:true,dept:"사범대학",desc:"사범대학 교육학부·수학교육과·영어교육과·컴퓨터교육과 강의 공간."},
+  "창의관":            {emoji:"💡",sub:"창의융합 강의동",floors:"지상 6층",elv:true,cafe:false,conv:false,print:true,dept:"여러 대학 공동",desc:"창의융합 교육 프로그램 강의동. 스터디룸 예약 가능. 정보과학관 바로 옆. 남문에서 110m."},
+  "정보과학관":        {emoji:"🔭",sub:"IT·자연과학 강의동",floors:"지상 7층",elv:true,cafe:false,conv:false,print:true,dept:"IT대학, 자연과학대학",desc:"정보통신전자공학부·수학과 강의동. 정문에서 550m. 남문 버스정류장에서 도보 2분."},
+};
+
+// ── SVG 빌더 ──────────────────────────────────────────────
+function bldgCenter(name){
+  const b=C[name]; if(!b) return null;
+  return{x:b[0]+b[2]/2, y:b[1]+b[3]/2};
 }
 
-// ── CONGESTION DATA ──
-function getCongestionLevel() {
-  const h = new Date().getHours();
-  if (h >= 12 && h < 14) return "high";
-  if (h >= 9 && h < 12 || h >= 14 && h < 18) return "mid";
-  return "low";
+// ── 건물별 실제 위경도 좌표 ──────────────────────────────
+const LATLNG = {
+  "숭실대입구역(정문)": [37.4963, 126.9576],
+  "남문":               [37.4961, 126.9599],
+  "중문":               [37.4983, 126.9613],
+  "안익태기념관":       [37.4970, 126.9579],
+  "형남공학관":         [37.4973, 126.9585],
+  "한국기독교박물관":   [37.4971, 126.9592],
+  "한경직기념관":       [37.4976, 126.9585],
+  "문화관":             [37.4972, 126.9572],
+  "숭덕경상관":         [37.4979, 126.9572],
+  "슈파크":             [37.4981, 126.9570],
+  "베어드홀":           [37.4975, 126.9578],
+  "학생회관":           [37.4980, 126.9578],
+  "진리관":             [37.4980, 126.9585],
+  "미래관":             [37.4974, 126.9592],
+  "전산관":             [37.4977, 126.9598],
+  "창신관":             [37.4983, 126.9602],
+  "글로벌브레인홀":     [37.4987, 126.9603],
+  "레지던스홀":         [37.4990, 126.9600],
+  "신양관":             [37.4983, 126.9580],
+  "중앙도서관":         [37.4984, 126.9587],
+  "연구관":             [37.4985, 126.9596],
+  "웨스트민스터홀":     [37.4988, 126.9587],
+  "조만식기념관":       [37.4991, 126.9587],
+  "벤처중소기업센터":   [37.4990, 126.9595],
+  "대운동장":           [37.4988, 126.9576],
+  "백마관":             [37.4993, 126.9578],
+  "교육관":             [37.4993, 126.9585],
+  "창의관":             [37.4962, 126.9597],
+  "정보과학관":         [37.4961, 126.9604],
+  "농구장":             [37.4971, 126.9596],
+};
+
+// 건물 카테고리별 마커 색상
+const MARKER_COLOR = {
+  "숭실대입구역(정문)":"#ef4444","남문":"#ef4444","중문":"#ef4444",
+  "중앙도서관":"#8b5cf6",
+  "학생회관":"#0ea572","레지던스홀":"#0ea572","벤처중소기업센터":"#0ea572","슈파크":"#22c55e",
+  "대운동장":"#22c55e","농구장":"#22c55e",
+};
+function markerColor(name){return MARKER_COLOR[name]||'#2f6ef5';}
+
+let kakaoMapInst = null;
+let kakaoMiniMapInst = null;
+
+function makeMarkerImage(color, size=28){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size*1.3}">
+    <circle cx="${size/2}" cy="${size/2}" r="${size/2-2}" fill="${color}" stroke="white" stroke-width="2"/>
+    <polygon points="${size/2-5},${size-4} ${size/2+5},${size-4} ${size/2},${size*1.25}" fill="${color}"/>
+  </svg>`;
+  const url='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+  return new kakao.maps.MarkerImage(url, new kakao.maps.Size(size, size*1.3),
+    {offset: new kakao.maps.Point(size/2, size*1.3)});
 }
 
-const CONGESTION_SPOTS = [
-  { name:"학생회관 식당", icon:"🍽" },
-  { name:"중앙도서관 열람실", icon:"📖" },
-  { name:"형남공학관 입구", icon:"🏗" },
-  { name:"정문~중앙광장", icon:"🚶" },
-  { name:"전산관 복도", icon:"💻" },
-  { name:"본관 앞 광장", icon:"🏛" },
+function renderMap(){
+  const container=document.getElementById('kakaoMap');
+  if(!container)return;
+  const center=new kakao.maps.LatLng(37.4979, 126.9588);
+  if(!kakaoMapInst){
+    kakaoMapInst=new kakao.maps.Map(container,{center,level:3});
+  }
+  // 마커 추가
+  Object.entries(LATLNG).forEach(([name,[lat,lng]])=>{
+    if(name==='농구장')return;
+    const pos=new kakao.maps.LatLng(lat,lng);
+    const marker=new kakao.maps.Marker({
+      map:kakaoMapInst, position:pos,
+      image:makeMarkerImage(markerColor(name)),
+      title:name,
+    });
+    // 커스텀 오버레이 (건물명)
+    const label=new kakao.maps.CustomOverlay({
+      map:kakaoMapInst,
+      position:pos,
+      content:`<div style="background:rgba(7,9,15,0.82);color:#dde4f0;font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:Noto Sans KR,sans-serif;margin-top:-42px;border:1px solid #1e2d4a">${name}</div>`,
+      yAnchor:0,
+    });
+    kakao.maps.event.addListener(marker,'click',()=>showMod(name));
+  });
+}
+
+function renderMiniMap(fromName, toName){
+  const container=document.getElementById('minimap');
+  if(!container)return;
+  const fl=LATLNG[fromName], tl=LATLNG[toName];
+  if(!fl||!tl)return;
+  const clat=(fl[0]+tl[0])/2, clng=(fl[1]+tl[1])/2;
+  const center=new kakao.maps.LatLng(clat,clng);
+  if(!kakaoMiniMapInst){
+    kakaoMiniMapInst=new kakao.maps.Map(container,{center,level:4});
+  } else {
+    kakaoMiniMapInst.setCenter(center);
+    kakaoMiniMapInst.setLevel(4);
+  }
+  // 출발 마커
+  new kakao.maps.Marker({
+    map:kakaoMiniMapInst,
+    position:new kakao.maps.LatLng(fl[0],fl[1]),
+    image:makeMarkerImage('#0ea572',32),
+    title:'출발: '+fromName,
+  });
+  // 도착 마커
+  new kakao.maps.Marker({
+    map:kakaoMiniMapInst,
+    position:new kakao.maps.LatLng(tl[0],tl[1]),
+    image:makeMarkerImage('#ef4444',32),
+    title:'도착: '+toName,
+  });
+  // 경로 폴리라인
+  const r=getRoute(fromName,toName);
+  const linePath=r.via.map(stop=>{
+    const ll=LATLNG[stop];
+    return ll ? new kakao.maps.LatLng(ll[0],ll[1]) : null;
+  }).filter(Boolean);
+  if(linePath.length>=2){
+    new kakao.maps.Polyline({
+      map:kakaoMiniMapInst,
+      path:linePath,
+      strokeWeight:4,
+      strokeColor:'#2f6ef5',
+      strokeOpacity:0.9,
+      strokeStyle:'solid',
+    });
+  }
+}
+
+// ── SELECT / PRESET ──────────────────────────────────────
+const BLDG_LIST=[
+  ["숭실대입구역(정문)","🚇"],["남문","🚪"],
+  ["안익태기념관","🎵"],["형남공학관","🏗"],["한국기독교박물관","🏛"],["한경직기념관","⛪"],
+  ["문화관","🎨"],["숭덕경상관","📊"],["슈파크","🏊"],["베어드홀","🎓"],
+  ["학생회관","🎭"],["진리관","🏢"],["미래관","🚀"],["전산관","💻"],
+  ["창신관","✨"],["글로벌브레인홀","🌐"],["레지던스홀","🏠"],
+  ["신양관","🏢"],["중앙도서관","📖"],["연구관","🔬"],
+  ["웨스트민스터홀","🕍"],["조만식기념관","📚"],["벤처중소기업센터","💼"],
+  ["대운동장","⚽"],["백마관","🏢"],["교육관","📝"],
+  ["창의관","💡"],["정보과학관","🔭"],
 ];
 
-// ── TOGGLE ──
-let opts = { fast:false, indoor:true, elevator:false, rain:false };
-
-function toggleOpt(key) {
-  opts[key] = !opts[key];
-  document.getElementById(`opt-${key}`).classList.toggle('selected', opts[key]);
-}
-
-// ── PAGES ──
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById(name+'Page').classList.add('active');
-  event.target.classList.add('active');
-
-  if (name==='map') renderMap();
-  if (name==='congestion') renderCongestion();
-}
-
-// ── SWAP ──
-function swapBuildings() {
-  const s = document.getElementById('startSel');
-  const e = document.getElementById('endSel');
-  [s.value, e.value] = [e.value, s.value];
-}
-
-// ── QUICK ROUTE ──
-function quickRoute(from, to) {
-  document.getElementById('startSel').value = from;
-  document.getElementById('endSel').value = to;
-  findRoute();
-}
-
-// ── FIND ROUTE ──
-function findRoute() {
-  const start = document.getElementById('startSel').value;
-  const end = document.getElementById('endSel').value;
-
-  if (!start) { alert('출발 건물을 선택해주세요.'); return; }
-  if (!end)   { alert('도착 건물을 선택해주세요.'); return; }
-  if (start === end) { alert('출발지와 도착지가 같습니다.'); return; }
-
-  let route = getRouteKey(start, end) || estimateRoute(start, end);
-
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('resultPage').classList.add('active');
-
-  document.getElementById('routeTitle').textContent = `${start} → ${end}`;
-  document.getElementById('routeSub').textContent = '경로를 찾았어요!';
-  document.getElementById('metaTime').textContent = route.time;
-  document.getElementById('metaDist').textContent = route.dist;
-  document.getElementById('metaSteps').textContent = (route.via.length - 2) + '개';
-
-  // build route track
-  const track = document.getElementById('routeTrack');
-  track.innerHTML = '';
-  route.via.forEach((stop, i) => {
-    const isEnd = i === route.via.length-1;
-    const div = document.createElement('div');
-    div.className = 'route-step';
-    div.innerHTML = `
-      <div class="step-dot ${isEnd?'end':''}">${isEnd?'✓':(i+1)}</div>
-      <div class="step-info">
-        <div class="step-name">${stop}</div>
-        <div class="step-desc">${i===0?'출발':isEnd?'도착':'경유지'}</div>
-      </div>`;
-    track.appendChild(div);
-  });
-
-  // tips
-  const tipContent = document.getElementById('tipContent');
-  tipContent.innerHTML = '';
-  const addTip = (icon, text) => {
-    const d = document.createElement('div');
-    d.className = 'tip-box';
-    d.innerHTML = `<span class="tip-icon">${icon}</span><span class="tip-text">${text}</span>`;
-    tipContent.appendChild(d);
-  };
-
-  addTip('📍', route.tips);
-  if (opts.rain && route.rainTip) addTip('🌧', route.rainTip);
-  if (opts.elevator) addTip('🛗', '엘리베이터 이용 경로를 기준으로 안내합니다.');
-}
-
-// ── GO BACK ──
-function goBack() {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('mainPage').classList.add('active');
-  document.querySelector('.nav-tab').classList.add('active');
-}
-
-// ── MAP ──
-function renderMap() {
-  const grid = document.getElementById('mapGrid');
-  grid.innerHTML = '';
-  Object.entries(BUILDINGS).forEach(([name, b]) => {
-    const div = document.createElement('div');
-    div.className = 'map-bldg';
-    div.onclick = () => showBldgModal(name, b);
-    div.innerHTML = `
-      <div class="bldg-emoji">${b.emoji}</div>
-      <div class="bldg-name">${name}</div>
-      <div class="bldg-sub">${b.sub}</div>
-      <div class="bldg-tags">${b.tags.map(t=>`<span class="bldg-tag">${t}</span>`).join('')}</div>`;
-    grid.appendChild(div);
+function populateSelects(){
+  ['ss','es'].forEach(id=>{
+    const sel=document.getElementById(id);
+    BLDG_LIST.forEach(([name,emoji])=>{
+      const opt=document.createElement('option');
+      opt.value=name; opt.textContent=`${emoji} ${name}`;
+      sel.appendChild(opt);
+    });
   });
 }
 
-function showBldgModal(name, b) {
-  const rows = [
-    ['🏢', '층수', b.floors],
-    ['🛗', '엘리베이터', b.elevator ? '✅ 있음' : '❌ 없음'],
-    ['☕', '카페', b.cafe ? '✅ 있음' : '❌ 없음'],
-    ['🏪', '편의점', b.convenience ? '✅ 있음' : '❌ 없음'],
-    ['🖨', '프린터', b.printer ? '✅ 있음' : '❌ 없음'],
-    ['📝', '주요 강의실', b.rooms],
-  ];
+const PRESETS=[
+  ["숭실대입구역(정문)","형남공학관"],
+  ["숭실대입구역(정문)","전산관"],
+  ["숭실대입구역(정문)","정보과학관"],
+  ["숭실대입구역(정문)","학생회관"],
+  ["학생회관","중앙도서관"],
+  ["남문","전산관"],
+];
 
-  document.getElementById('modalContent').innerHTML = `
-    <div class="modal-header">
-      <div>
-        <div class="modal-bldg-name">${b.emoji} ${name}</div>
-        <div class="modal-bldg-sub">${b.sub}</div>
-      </div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.7">${b.desc}</p>
-    ${rows.map(([icon,label,val])=>`
-      <div class="modal-info-row">
-        <span class="icon">${icon}</span>
-        <span style="flex:1;font-weight:500">${label}</span>
-        <span class="val">${val}</span>
-      </div>`).join('')}
-  `;
-  document.getElementById('modalOverlay').classList.add('open');
+function populatePresets(){
+  const wrap=document.getElementById('presets');
+  PRESETS.forEach(([a,b])=>{
+    const d=document.createElement('div');d.className='chip';
+    d.textContent=`${a.replace('숭실대입구역(정문)','정문')} → ${b}`;
+    d.onclick=()=>qr(a,b);
+    wrap.appendChild(d);
+  });
 }
 
-function closeModal(e) {
-  if (!e || e.target === document.getElementById('modalOverlay')) {
-    document.getElementById('modalOverlay').classList.remove('open');
+// ── UI ──────────────────────────────────────────────────
+let opts={ind:true,elv:false,rai:false};
+function tog(k){opts[k]=!opts[k];document.getElementById(`o-${k}`).classList.toggle('on',opts[k]);}
+function goPg(name,el){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById(name+'Pg').classList.add('on');
+  if(el)el.classList.add('on');
+  if(name==='map')renderMap();
+  if(name==='cong')renderCong();
+}
+function doSwap(){const s=document.getElementById('ss'),e=document.getElementById('es');[s.value,e.value]=[e.value,s.value];}
+function qr(from,to){document.getElementById('ss').value=from;document.getElementById('es').value=to;findRoute();}
+
+function findRoute(){
+  const s=document.getElementById('ss').value,e=document.getElementById('es').value;
+  if(!s){alert('출발 건물을 선택해주세요.');return;}
+  if(!e){alert('도착 건물을 선택해주세요.');return;}
+  if(s===e){alert('출발지와 도착지가 같습니다.');return;}
+  const r=getRoute(s,e);
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('resPg').classList.add('on');
+  document.getElementById('minimap').innerHTML='';
+  setTimeout(()=>renderMiniMap(s,e), 50);
+  document.getElementById('rtitle').textContent=`${s} → ${e}`;
+  document.getElementById('rsub').textContent='경로를 찾았어요!';
+  document.getElementById('mtime').textContent=r.mins+'분';
+  document.getElementById('mdist').textContent=r.dist+'m';
+  document.getElementById('mstep').textContent=(r.via.length-2)+'개';
+  const trk=document.getElementById('rtrack');trk.innerHTML='';
+  r.via.forEach((stop,i)=>{
+    const isE=i===r.via.length-1;
+    const d=document.createElement('div');d.className='rstep';
+    d.innerHTML=`<div class="rdot ${isE?'end':''}">${isE?'✓':(i+1)}</div>
+      <div class="rinfo"><div class="rname">${stop}</div>
+      <div class="rdesc">${i===0?'출발':isE?'도착':'경유지'}</div></div>`;
+    trk.appendChild(d);
+  });
+  const tips=document.getElementById('tips');tips.innerHTML='';
+  const addT=(ic,tx)=>{const d=document.createElement('div');d.className='tipbox';
+    d.innerHTML=`<span style="font-size:14px;flex-shrink:0">${ic}</span><span class="tiptext">${tx}</span>`;
+    tips.appendChild(d);};
+  addT('📍',r.tip);
+  if(opts.rai&&r.rain)addT('🌧',r.rain);
+  if(opts.elv)addT('🛗','엘리베이터 이용 경로를 기준으로 안내합니다.');
+}
+
+function goBack(){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('mainPg').classList.add('on');
+  document.querySelector('.tab').classList.add('on');
+}
+// renderMap은 위에서 카카오맵으로 정의됨
+
+function showMod(name){
+  const b=BINFO[name];
+  if(!b){
+    document.getElementById('mcon').innerHTML=`
+      <div class="mhead"><div><div class="mbn">🏢 ${name}</div><div class="mbs">정보 준비 중</div></div>
+      <button class="mclose" onclick="closeMod()">✕</button></div>
+      <p style="font-size:13px;color:var(--dim);line-height:1.7">상세 정보는 추후 업데이트 예정입니다.</p>
+      <div style="margin-top:14px"><button class="btnp" style="font-size:12px;padding:9px" onclick="setDest('${name}')">이 건물로 길찾기</button></div>`;
+    document.getElementById('mov').classList.add('on');return;
   }
+  const rows=[['🏢','층수',b.floors],['🎓','소속',b.dept],['🛗','엘리베이터',b.elv?'✅ 있음':'❌ 없음'],['☕','카페',b.cafe?'✅ 있음':'❌ 없음'],['🏪','편의점',b.conv?'✅ 있음':'❌ 없음'],['🖨','프린터',b.print?'✅ 있음':'❌ 없음']];
+  document.getElementById('mcon').innerHTML=`
+    <div class="mhead">
+      <div><div class="mbn">${b.emoji} ${name}</div><div class="mbs">${b.sub}</div></div>
+      <button class="mclose" onclick="closeMod()">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.75">${b.desc}</p>
+    ${rows.map(([ic,lb,vl])=>`<div class="mrow"><span class="ic">${ic}</span><span style="flex:1;font-weight:500">${lb}</span><span class="vl">${vl}</span></div>`).join('')}
+    <div style="margin-top:13px"><button class="btnp" style="font-size:12px;padding:9px" onclick="setDest('${name}')">이 건물로 길찾기</button></div>`;
+  document.getElementById('mov').classList.add('on');
 }
+function setDest(name){closeMod();goPg('main',document.querySelector('.tab'));document.getElementById('es').value=name;}
+function closeMod(e){if(!e||e.target===document.getElementById('mov'))document.getElementById('mov').classList.remove('on');}
 
-// ── CONGESTION ──
-function renderCongestion() {
-  const h = new Date().getHours();
-  const m = new Date().getMinutes();
-  document.getElementById('currentTimeLabel').textContent =
-    `${h}시 ${m}분`;
+// 시간대·요일 기반 혼잡도 패턴
+// 요일: 0=일 1=월 2=화 3=수 4=목 5=금 6=토
+// 시간대별 혼잡도: 'low' | 'mid' | 'high'
+const CONG_PATTERN = {
+  "학생회관 식당": {
+    ic:"🍽",
+    // 평일 점심(11~13)=high, 저녁(17~19)=mid, 나머지=low / 주말=low
+    fn:(h,w)=> w>=1&&w<=5 ? (h>=11&&h<14?'high':h>=17&&h<19?'mid':h>=8&&h<20?'low':'low') : 'low',
+    desc:"점심시간(11~13시) 매우 혼잡"
+  },
+  "중앙도서관 열람실": {
+    ic:"📖",
+    // 시험기간 외 기준: 저녁(18~23)=high, 오후(13~18)=mid, 오전=low
+    fn:(h,w)=> w>=1&&w<=5 ? (h>=18&&h<24?'high':h>=13&&h<18?'mid':h>=9?'low':'low') : (h>=14?'mid':'low'),
+    desc:"저녁(18시~) 열람실 혼잡"
+  },
+  "형남공학관 앞": {
+    ic:"🏗",
+    // 수업 시작 직전(9,11,13,15시) 혼잡
+    fn:(h,w)=> w>=1&&w<=5 ? ([9,11,13,15].includes(h)?'high':[10,12,14,16].includes(h)?'mid':'low') : 'low',
+    desc:"수업 시작 직전 시간 혼잡"
+  },
+  "정문~안익태기념관": {
+    ic:"🚶",
+    // 등교(8~10)=high, 하교(17~19)=high, 점심=mid
+    fn:(h,w)=> w>=1&&w<=5 ? (h>=8&&h<10?'high':h>=17&&h<19?'high':h>=11&&h<14?'mid':'low') : (h>=12&&h<15?'low':'low'),
+    desc:"등·하교 시간대 혼잡"
+  },
+  "전산관": {
+    ic:"💻",
+    fn:(h,w)=> w>=1&&w<=5 ? ([9,11,13,15].includes(h)?'high':[10,12,14,16].includes(h)?'mid':'low') : 'low',
+    desc:"수업 시작 직전 시간 혼잡"
+  },
+  "정보과학관": {
+    ic:"🔭",
+    fn:(h,w)=> w>=1&&w<=5 ? ([9,11,13,15].includes(h)?'mid':[10,12,14,16].includes(h)?'low':'low') : 'low',
+    desc:"수업 시간대 보통"
+  },
+  "창의관": {
+    ic:"💡",
+    fn:(h,w)=> w>=1&&w<=5 ? ([9,11,13,15].includes(h)?'mid':'low') : 'low',
+    desc:"수업 시간대 보통"
+  },
+  "한경직기념관 앞": {
+    ic:"⛪",
+    // 수요일(3) 10~12시 채플 = high, 그 외 평일 수업 전후 = mid
+    fn:(h,w)=> w===3&&h>=10&&h<12?'high' : w>=1&&w<=5&&h>=9&&h<18?'mid':'low',
+    desc:"수요일 채플(10~12시) 매우 혼잡"
+  },
+  "슈파크": {
+    ic:"🏊",
+    // 오전(6~8)=mid, 점심(12~14)=high, 저녁(18~21)=high
+    fn:(h,w)=> h>=12&&h<14?'high':h>=18&&h<21?'high':h>=6&&h<8?'mid':'low',
+    desc:"점심·저녁 이용자 많음"
+  },
+};
 
-  const list = document.getElementById('congestionList');
-  list.innerHTML = '';
-
-  CONGESTION_SPOTS.forEach(spot => {
-    // pseudo-random but deterministic per spot+hour
-    const seed = (spot.name.charCodeAt(0) + h) % 3;
-    const level = seed === 0 ? 'low' : seed === 1 ? 'mid' : 'high';
-    const labels = { low:['여유','초록'], mid:['보통','주황'], high:['혼잡','빨강'] };
-    const [text] = labels[level];
-
-    const div = document.createElement('div');
-    div.className = `congestion-card`;
-    div.innerHTML = `
-      <div class="cong-left">
-        <div class="cong-dot ${level}"></div>
-        <div>
-          <div class="cong-name">${spot.icon} ${spot.name}</div>
-          <div class="cong-sub">${h}시대 기준 예측</div>
-        </div>
-      </div>
-      <div class="cong-badge ${level}">${text}</div>`;
-    list.appendChild(div);
+function renderCong(){
+  const now=new Date();
+  const h=now.getHours(), m=now.getMinutes(), w=now.getDay();
+  const dayNames=['일','월','화','수','목','금','토'];
+  document.getElementById('tl').textContent=`${dayNames[w]}요일 ${h}시 ${m}분`;
+  const list=document.getElementById('conglist');list.innerHTML='';
+  const lb={low:'여유',mid:'보통',high:'혼잡'};
+  Object.entries(CONG_PATTERN).forEach(([name,p])=>{
+    const l=p.fn(h,w);
+    const d=document.createElement('div');d.className='ccard';
+    d.innerHTML=`<div class="cleft"><div class="cdot ${l}"></div>
+      <div><div class="cname">${p.ic} ${name}</div>
+      <div class="csub">${p.desc}</div></div></div>
+      <div class="cbadge ${l}">${lb[l]}</div>`;
+    list.appendChild(d);
   });
 }
+
+populateSelects();
+populatePresets();
 </script>
 </body>
 </html>
