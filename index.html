@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SSU Navigator — 숭실대 캠퍼스 길찾기</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f52a5c26a7b50b957cb5b15d56068785"></script>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f52a5c26a7b50b957cb5b15d56068785&autoload=false"></script>
 <style>
 :root{--bg:#07090f;--sur:#0f1420;--card:#141b2d;--bdr:#1e2d4a;--acc:#2f6ef5;--acc2:#5b8fff;--glow:rgba(47,110,245,0.22);--tx:#dde4f0;--dim:#4a5a78;--mut:#7a8ba8;--grn:#0ea572;--org:#f59e0b;--red:#ef4444;--r:12px}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -427,7 +427,10 @@ const MARKER_COLOR = {
 function markerColor(name){return MARKER_COLOR[name]||'#2f6ef5';}
 
 let kakaoMapInst = null;
+let kakaoMapMarkersAdded = false; // 마커 중복 추가 방지
 let kakaoMiniMapInst = null;
+let miniMapMarkers = [];          // 미니맵 마커/폴리라인 재사용
+let miniMapPolyline = null;
 
 function makeMarkerImage(color, size=28){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size*1.3}">
@@ -443,10 +446,19 @@ function renderMap(){
   const container=document.getElementById('kakaoMap');
   if(!container)return;
   const center=new kakao.maps.LatLng(37.4979, 126.9588);
+
   if(!kakaoMapInst){
     kakaoMapInst=new kakao.maps.Map(container,{center,level:3});
   }
-  // 마커 추가
+
+  // ★ 핵심 수정: display:none → block 된 직후 지도 크기를 재계산
+  kakaoMapInst.relayout();
+  kakaoMapInst.setCenter(center);
+
+  // 마커는 최초 1회만 추가 (탭 재방문 시 중복 방지)
+  if(kakaoMapMarkersAdded) return;
+  kakaoMapMarkersAdded = true;
+
   Object.entries(LATLNG).forEach(([name,[lat,lng]])=>{
     if(name==='농구장')return;
     const pos=new kakao.maps.LatLng(lat,lng);
@@ -455,7 +467,6 @@ function renderMap(){
       image:makeMarkerImage(markerColor(name)),
       title:name,
     });
-    // 커스텀 오버레이 (건물명)
     const label=new kakao.maps.CustomOverlay({
       map:kakaoMapInst,
       position:pos,
@@ -473,26 +484,33 @@ function renderMiniMap(fromName, toName){
   if(!fl||!tl)return;
   const clat=(fl[0]+tl[0])/2, clng=(fl[1]+tl[1])/2;
   const center=new kakao.maps.LatLng(clat,clng);
+
   if(!kakaoMiniMapInst){
     kakaoMiniMapInst=new kakao.maps.Map(container,{center,level:4});
   } else {
+    // ★ 핵심 수정: 기존 마커·폴리라인 제거 후 재사용 (innerHTML 초기화 금지)
+    miniMapMarkers.forEach(m=>m.setMap(null));
+    miniMapMarkers=[];
+    if(miniMapPolyline){ miniMapPolyline.setMap(null); miniMapPolyline=null; }
+    kakaoMiniMapInst.relayout();
     kakaoMiniMapInst.setCenter(center);
     kakaoMiniMapInst.setLevel(4);
   }
+
   // 출발 마커
-  new kakao.maps.Marker({
+  miniMapMarkers.push(new kakao.maps.Marker({
     map:kakaoMiniMapInst,
     position:new kakao.maps.LatLng(fl[0],fl[1]),
     image:makeMarkerImage('#0ea572',32),
     title:'출발: '+fromName,
-  });
+  }));
   // 도착 마커
-  new kakao.maps.Marker({
+  miniMapMarkers.push(new kakao.maps.Marker({
     map:kakaoMiniMapInst,
     position:new kakao.maps.LatLng(tl[0],tl[1]),
     image:makeMarkerImage('#ef4444',32),
     title:'도착: '+toName,
-  });
+  }));
   // 경로 폴리라인
   const r=getRoute(fromName,toName);
   const linePath=r.via.map(stop=>{
@@ -500,7 +518,7 @@ function renderMiniMap(fromName, toName){
     return ll ? new kakao.maps.LatLng(ll[0],ll[1]) : null;
   }).filter(Boolean);
   if(linePath.length>=2){
-    new kakao.maps.Polyline({
+    miniMapPolyline=new kakao.maps.Polyline({
       map:kakaoMiniMapInst,
       path:linePath,
       strokeWeight:4,
@@ -562,7 +580,8 @@ function goPg(name,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.getElementById(name+'Pg').classList.add('on');
   if(el)el.classList.add('on');
-  if(name==='map')renderMap();
+  // ★ display:block 적용 후 한 프레임 기다렸다가 지도 relayout 실행
+  if(name==='map') requestAnimationFrame(()=>requestAnimationFrame(renderMap));
   if(name==='cong')renderCong();
 }
 function doSwap(){const s=document.getElementById('ss'),e=document.getElementById('es');[s.value,e.value]=[e.value,s.value];}
@@ -577,8 +596,9 @@ function findRoute(){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.getElementById('resPg').classList.add('on');
-  document.getElementById('minimap').innerHTML='';
-  setTimeout(()=>renderMiniMap(s,e), 50);
+  // ★ innerHTML 초기화 제거 — 기존 kakao.maps 인스턴스 DOM이 날아가면 지도가 망가짐
+  // 마커/폴리라인 정리는 renderMiniMap 내부에서 setMap(null)로 처리
+  setTimeout(()=>renderMiniMap(s,e), 80);
   document.getElementById('rtitle').textContent=`${s} → ${e}`;
   document.getElementById('rsub').textContent='경로를 찾았어요!';
   document.getElementById('mtime').textContent=r.mins+'분';
@@ -709,8 +729,11 @@ function renderCong(){
   });
 }
 
-populateSelects();
-populatePresets();
+// ★ SDK 로드 완료 후 실행 — kakao is not defined 방지
+kakao.maps.load(function(){
+  populateSelects();
+  populatePresets();
+});
 </script>
 </body>
 </html>
