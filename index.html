@@ -507,6 +507,15 @@ function renderMap(){
   Object.entries(LATLNG).forEach(([name,[lat,lng]])=>{
     if(name==='농구장')return;
 
+    // 정문은 API 검색 없이 입구역 좌표 고정
+    if(name==='숭실대입구역(정문)'){
+      const pos=new kakao.maps.LatLng(lat,lng);
+      const m=new kakao.maps.Marker({map:kakaoMapInst,position:pos,image:makeMarkerImage(markerColor(name)),title:name});
+      new kakao.maps.CustomOverlay({map:kakaoMapInst,position:pos,content:`<div style="background:rgba(7,9,15,0.82);color:#dde4f0;font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;font-family:Noto Sans KR,sans-serif;margin-top:-42px;border:1px solid #1e2d4a">${name}</div>`,yAnchor:0});
+      kakao.maps.event.addListener(m,'click',()=>showMod(name));
+      return;
+    }
+
     // 카카오 장소 검색으로 정확한 좌표 취득, 실패 시 기존 좌표 사용
     ps.keywordSearch('숭실대학교 ' + name, function(result, status){
       let pos;
